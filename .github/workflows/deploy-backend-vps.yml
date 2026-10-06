@@ -1,0 +1,44 @@
+name: Deploy Backend to VPS (Docker)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy-backend-vps.yml'
+
+jobs:
+  deploy-vps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH & Docker
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script: |
+            set -e
+            echo "--- Desplegando Backend en VPS ---"
+            cd /opt/hotelsjb || (mkdir -p /opt/hotelsjb && cd /opt/hotelsjb)
+            
+            # Sincronizar repositorio
+            if [ -d ".git" ]; then
+              git fetch origin main
+              git reset --hard origin/main
+            else
+              git clone https://github.com/${{ github.repository }}.git .
+            fi
+
+            # Construir y levantar contenedor Docker
+            docker compose build --no-cache backend-api
+            docker compose up -d backend-api
+            
+            # Limpiar imágenes obsoletas
+            docker image prune -f
+            echo "--- Backend Desplegado Exitosamente ---"

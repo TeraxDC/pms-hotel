@@ -1,0 +1,21 @@
+services:
+  backend-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: hotelsjb-api:latest
+    container_name: hotelsjb_backend
+    restart: always
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./uploads:/app/uploads
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
