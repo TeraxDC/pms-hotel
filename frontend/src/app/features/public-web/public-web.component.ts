@@ -5,7 +5,6 @@ import { RouterModule } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../shared/components/toast/toast.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
-import { CustomSelectComponent, SelectOption } from '../../shared/components/custom-select/custom-select.component';
 
 @Component({
   selector: 'app-public-web',
@@ -15,7 +14,6 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
     FormsModule,
     RouterModule,
     IconComponent,
-    CustomSelectComponent,
   ],
   template: `
     <div class="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-amber-500 selection:text-white">
@@ -161,13 +159,26 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
 
                 <!-- Tipo de Habitación -->
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Categoría de Habitación</label>
-                  <app-custom-select
-                    [options]="roomTypeOptions"
-                    [(ngModel)]="searchDates.selectedTypeId"
-                    (ngModelChange)="recalculateQuote()"
-                    placeholder="Todas las categorías"
-                  ></app-custom-select>
+                  <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                    <span>Categoría de Habitación</span>
+                    <span class="text-[10px] text-amber-600 font-bold">({{ roomTypes().length }} categorías)</span>
+                  </label>
+                  <div class="relative">
+                    <select
+                      [(ngModel)]="searchDates.selectedTypeId"
+                      (ngModelChange)="recalculateQuote()"
+                      (change)="recalculateQuote()"
+                      class="w-full appearance-none px-3.5 py-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all cursor-pointer h-[42px]"
+                    >
+                      <option [ngValue]="null">Todas las Categorías ({{ roomTypes().length }} disponibles)</option>
+                      <option *ngFor="let t of roomTypes()" [ngValue]="t.id">
+                        {{ t.name }} — S/. {{ t.base_price }}/noche (Cap. {{ t.max_capacity }} pers.)
+                      </option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 flex items-center px-3.5 pointer-events-none text-slate-400">
+                      <app-icon name="chevron-down" [size]="15"></app-icon>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Botón Consultar WhatsApp -->
@@ -651,8 +662,6 @@ export class PublicWebComponent implements OnInit {
   quotePreviewNights: number = 1;
   quotePreviewTotal: number = 0;
 
-  roomTypeOptions: SelectOption[] = [];
-
   ngOnInit() {
     this.loadHotelData();
     this.loadRoomTypes();
@@ -738,14 +747,6 @@ export class PublicWebComponent implements OnInit {
     this.api.get<any[]>('rooms/types').subscribe({
       next: (types) => {
         this.roomTypes.set(types);
-        this.roomTypeOptions = [
-          { value: null, label: 'Todas las Categorías' },
-          ...types.map((t) => ({
-            value: t.id,
-            label: `${t.name} (S/. ${t.base_price}/noche)`,
-            sublabel: `Capacidad: ${t.max_capacity} pers.`
-          }))
-        ];
         this.recalculateQuote();
       }
     });
@@ -764,7 +765,7 @@ export class PublicWebComponent implements OnInit {
     this.quotePreviewNights = nights;
 
     if (this.searchDates.selectedTypeId) {
-      const selected = this.roomTypes().find((t) => t.id === this.searchDates.selectedTypeId);
+      const selected = this.roomTypes().find((t) => Number(t.id) === Number(this.searchDates.selectedTypeId));
       if (selected) {
         this.quotePreviewTotal = Number(selected.base_price || 0) * nights;
         return;
@@ -791,7 +792,7 @@ export class PublicWebComponent implements OnInit {
   consultBooking() {
     const wa = this.hotelInfo()?.whatsapp || '+51984123456';
     const cleanWa = wa.replace(/[^0-9]/g, '');
-    const selectedType = this.roomTypes().find((t) => t.id === this.searchDates.selectedTypeId);
+    const selectedType = this.roomTypes().find((t) => Number(t.id) === Number(this.searchDates.selectedTypeId));
     const typeLabel = selectedType ? selectedType.name : 'Cualquier habitación disponible';
     const priceInfo = this.quotePreviewTotal > 0 ? `\n- Total Estimado: S/. ${this.quotePreviewTotal} (${this.quotePreviewNights} noches)` : '';
 
