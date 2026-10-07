@@ -69,8 +69,8 @@ import { StatusBadgeComponent } from '../../../shared/components/status-badge/st
             ></app-status-badge>
           </div>
 
-          <!-- Quick Action Buttons for Cleaning Staff -->
-          <div class="pt-3 border-t border-slate-100 flex items-center gap-2">
+          <!-- Quick Action Buttons for Cleaning Staff (Solo habitaciones NO ocupadas) -->
+          <div *ngIf="room.operational_status?.code !== 'OCCUPIED'" class="pt-3 border-t border-slate-100 flex items-center gap-2">
             <!-- Pasar a En Limpieza -->
             <button
               *ngIf="room.housekeeping_status?.code !== 'IN_PROGRESS'"
@@ -103,6 +103,18 @@ import { StatusBadgeComponent } from '../../../shared/components/status-badge/st
               <app-icon name="clock" [size]="14"></app-icon>
               Marcar Sucia
             </button>
+          </div>
+
+          <!-- Si la habitación está con Check-In activo (Ocupada), mostrar aviso de limpieza protegida -->
+          <div
+            *ngIf="room.operational_status?.code === 'OCCUPIED'"
+            class="pt-3 border-t border-slate-100 flex items-center gap-2.5 p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-900 text-xs font-semibold"
+          >
+            <app-icon name="lock" [size]="16" class="text-amber-600 shrink-0"></app-icon>
+            <div>
+              <span class="font-bold block">Check-In Activo (Ocupada)</span>
+              <span class="text-[11px] text-amber-800/80">Limpieza protegida durante la estadía</span>
+            </div>
           </div>
         </div>
       </div>
@@ -143,6 +155,11 @@ export class HousekeepingComponent implements OnInit {
   }
 
   updateStatus(room: any, statusCode: string) {
+    if (room.operational_status?.code === 'OCCUPIED') {
+      this.toast.warning(`La habitación ${room.room_number} tiene Check-In activo (Ocupada). No está permitido alterar el estado de limpieza mientras el huésped permanezca alojado.`);
+      return;
+    }
+
     const targetStatus = this.hkStatuses().find((s) => s.code === statusCode);
     if (!targetStatus) return;
 

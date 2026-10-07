@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Room } from './entities/room.entity';
@@ -78,6 +78,21 @@ export class RoomsService {
     id: number,
     data: { operational_status_id?: number; housekeeping_status_id?: number },
   ) {
+    const room = await this.findRoomById(id);
+    if (!room) throw new NotFoundException('Habitación no encontrada');
+
+    // Validación operativa: Mientras la habitación esté con Check-In activo (Ocupada), no se permite alterar el estado de limpieza.
+    if (data.housekeeping_status_id && data.housekeeping_status_id !== room.housekeeping_status_id) {
+      if (
+        room.operational_status?.code === 'OCCUPIED' &&
+        (!data.operational_status_id || data.operational_status_id === room.operational_status_id)
+      ) {
+        throw new BadRequestException(
+          `No está permitido cambiar el estado de limpieza mientras la habitación ${room.room_number} tenga un Check-In activo (Ocupada).`,
+        );
+      }
+    }
+
     const updatePayload: any = {};
     if (data.operational_status_id) {
       updatePayload.operational_status_id = data.operational_status_id;

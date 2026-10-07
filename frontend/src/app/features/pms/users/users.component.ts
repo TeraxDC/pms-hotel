@@ -20,14 +20,15 @@ import { CustomSwitchComponent } from '../../../shared/components/custom-switch/
         <div>
           <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <app-icon name="users" [size]="24" class="text-amber-600"></app-icon>
-            Gestión de Usuarios & Permisos RBAC
+            Gestión de Usuarios & Roles RBAC
           </h1>
           <p class="text-xs text-slate-500">
-            Administración del personal del hotel, asignación de roles y PINs de autorización.
+            Administración del personal del hotel, asignación de roles, control de accesos y PINs de autorización.
           </p>
         </div>
 
         <button
+          *ngIf="activeTab() === 'users'"
           type="button"
           (click)="openCreateModal()"
           class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-md shadow-slate-900/20 transition-all flex items-center gap-2 self-start sm:self-auto cursor-pointer"
@@ -37,8 +38,33 @@ import { CustomSwitchComponent } from '../../../shared/components/custom-switch/
         </button>
       </div>
 
-      <!-- USERS TABLE -->
-      <div class="bg-white rounded-3xl border border-slate-100 shadow-2xs overflow-hidden">
+      <!-- TABS: USUARIOS / MATRIZ RBAC -->
+      <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          (click)="activeTab.set('users')"
+          [ngClass]="activeTab() === 'users' ? 'bg-slate-900 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'"
+          class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+        >
+          <app-icon name="users" [size]="15"></app-icon>
+          Personal & Cuentas ({{ users().length }})
+        </button>
+
+        <button
+          type="button"
+          (click)="activeTab.set('matrix')"
+          [ngClass]="activeTab() === 'matrix' ? 'bg-slate-900 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'"
+          class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+        >
+          <app-icon name="shield" [size]="15" class="text-amber-400"></app-icon>
+          Matriz de Permisos por Rol (RBAC)
+        </button>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- TAB 1: LISTADO DE USUARIOS                               -->
+      <!-- ======================================================== -->
+      <div *ngIf="activeTab() === 'users'" class="bg-white rounded-3xl border border-slate-100 shadow-2xs overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs text-slate-600">
             <thead class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -127,6 +153,179 @@ import { CustomSwitchComponent } from '../../../shared/components/custom-switch/
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- TAB 2: MATRIZ DE PERMISOS POR ROL (RBAC)                  -->
+      <!-- ======================================================== -->
+      <div *ngIf="activeTab() === 'matrix'" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          
+          <!-- ROL 1: SUPERADMIN -->
+          <div class="bg-white rounded-3xl border border-purple-100 shadow-2xs p-6 space-y-4">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold">
+                  <app-icon name="shield" [size]="20"></app-icon>
+                </div>
+                <div>
+                  <h3 class="font-black text-slate-900 text-base">Superadministrador (SUPERADMIN)</h3>
+                  <span class="text-[11px] text-purple-700 font-bold uppercase tracking-wider">Acceso Global Irrestricto</span>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 text-[10px] font-extrabold font-mono">
+                Permiso: *
+              </span>
+            </div>
+
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Control absoluto y auditoría del sistema: configuración del hotel, gestión de roles, estados y códigos HEX, usuarios, reportes, caja, tarifas y CMS.
+            </p>
+
+            <div class="pt-3 border-t border-slate-100 space-y-2 text-xs">
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Configuración de Hotel & Wizard</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Total</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Gestión de Usuarios, Roles & PINs</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Total</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Estados & Colores HEX Administrables</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Total</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Reportes Gerenciales & Exportación Excel</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Total</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROL 2: ADMIN -->
+          <div class="bg-white rounded-3xl border border-blue-100 shadow-2xs p-6 space-y-4">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+                  <app-icon name="sliders" [size]="20"></app-icon>
+                </div>
+                <div>
+                  <h3 class="font-black text-slate-900 text-base">Administrador General (ADMIN)</h3>
+                  <span class="text-[11px] text-blue-700 font-bold uppercase tracking-wider">Gestión Operativa & Gerencial</span>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-[10px] font-extrabold font-mono">
+                Nivel 2
+              </span>
+            </div>
+
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Supervisión de operaciones hoteleras, tarifas de habitaciones, arqueo de caja chica, reportes ejecutivos, CMS informativo y supervisión de personal.
+            </p>
+
+            <div class="pt-3 border-t border-slate-100 space-y-2 text-xs">
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Habitaciones & Edición de Tarifas</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Total</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Editor Web CMS & Ofertas</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Total</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Caja Chica, Turnos & Liquidaciones</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Total</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Estados & Colores HEX</span>
+                <span class="font-bold text-slate-400 flex items-center gap-1"><app-icon name="x" [size]="14"></app-icon> Solo Lectura</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROL 3: RECEPTIONIST -->
+          <div class="bg-white rounded-3xl border border-amber-100 shadow-2xs p-6 space-y-4">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+                  <app-icon name="bed" [size]="20"></app-icon>
+                </div>
+                <div>
+                  <h3 class="font-black text-slate-900 text-base">Recepcionista (RECEPTIONIST)</h3>
+                  <span class="text-[11px] text-amber-700 font-bold uppercase tracking-wider">Atención de Mostrador & Huéspedes</span>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold font-mono">
+                Front-Desk
+              </span>
+            </div>
+
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Gestión diaria de check-in con reserva o walk-in, check-out, folios de huéspedes, consumo de frigobar, cobros y aperturas/cierres de turnos de caja.
+            </p>
+
+            <div class="pt-3 border-t border-slate-100 space-y-2 text-xs">
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Rack, Walk-In, Check-In & Check-Out</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Permitido</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Folios, Cargos Frigobar & Pagos</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Permitido</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Turno de Caja Chica en Mostrador</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Permitido</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Usuarios, Roles & Configuración</span>
+                <span class="font-bold text-red-500 flex items-center gap-1"><app-icon name="x" [size]="14"></app-icon> Bloqueado</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROL 4: HOUSEKEEPING -->
+          <div class="bg-white rounded-3xl border border-emerald-100 shadow-2xs p-6 space-y-4">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                  <app-icon name="sparkles" [size]="20"></app-icon>
+                </div>
+                <div>
+                  <h3 class="font-black text-slate-900 text-base">Personal de Limpieza (HOUSEKEEPING)</h3>
+                  <span class="text-[11px] text-emerald-700 font-bold uppercase tracking-wider">Camarería & Gobernanza Móvil</span>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold font-mono">
+                Móvil PWA
+              </span>
+            </div>
+
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Vista móvil optimizada para camareras. Marcado de habitaciones como limpias o en aseo (protegidas si hay check-in activo) y consulta visual del mapa de pisos.
+            </p>
+
+            <div class="pt-3 border-t border-slate-100 space-y-2 text-xs">
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Módulo de Housekeeping Móvil</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Permitido</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Rack de Habitaciones (Mapa de Pisos)</span>
+                <span class="font-bold text-emerald-600 flex items-center gap-1"><app-icon name="check" [size]="14"></app-icon> Lectura</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Limpieza en Habitación con Check-In</span>
+                <span class="font-bold text-amber-600 flex items-center gap-1"><app-icon name="lock" [size]="14"></app-icon> Protegida</span>
+              </div>
+              <div class="flex items-center justify-between text-slate-700 py-1">
+                <span>Caja, Reservas & Configuración</span>
+                <span class="font-bold text-red-500 flex items-center gap-1"><app-icon name="x" [size]="14"></app-icon> Bloqueado</span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -267,6 +466,7 @@ export class UsersComponent implements OnInit {
   private toast = inject(ToastService);
   private dialog = inject(DialogService);
 
+  activeTab = signal<'users' | 'matrix'>('users');
   users = signal<any[]>([]);
   roles = signal<any[]>([]);
   roleOptions: SelectOption[] = [];

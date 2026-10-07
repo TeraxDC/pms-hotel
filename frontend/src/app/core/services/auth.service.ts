@@ -1,8 +1,7 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiService } from './api.service';
-import { tap, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 export interface UserSession {
   id: number;
@@ -42,11 +41,59 @@ export class AuthService {
     return !!localStorage.getItem('hotelsjb_token');
   }
 
-  hasRole(roleName: string): boolean {
+  hasRole(roles: string | string[]): boolean {
     const user = this.currentUser();
     if (!user) return false;
     if (user.role === 'SUPERADMIN') return true;
-    return user.role === roleName;
+    if (Array.isArray(roles)) {
+      return roles.includes(user.role);
+    }
+    return user.role === roles;
+  }
+
+  hasPermission(permission: string): boolean {
+    const user = this.currentUser();
+    if (!user) return false;
+    if (user.role === 'SUPERADMIN') return true;
+    const perms = user.permissions || [];
+    if (perms.includes('*')) return true;
+    return perms.includes(permission);
+  }
+
+  canAccess(module: string): boolean {
+    const user = this.currentUser();
+    if (!user) return false;
+    if (user.role === 'SUPERADMIN') return true;
+
+    switch (module) {
+      case 'rack':
+        return ['SUPERADMIN', 'ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING'].includes(user.role);
+      case 'rooms':
+        return ['SUPERADMIN', 'ADMIN', 'RECEPTIONIST'].includes(user.role);
+      case 'reservations':
+        return ['SUPERADMIN', 'ADMIN', 'RECEPTIONIST'].includes(user.role);
+      case 'cash':
+        return ['SUPERADMIN', 'ADMIN', 'RECEPTIONIST'].includes(user.role);
+      case 'housekeeping':
+        return ['SUPERADMIN', 'ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING'].includes(user.role);
+      case 'reports':
+        return ['SUPERADMIN', 'ADMIN'].includes(user.role);
+      case 'users':
+        return ['SUPERADMIN', 'ADMIN'].includes(user.role);
+      case 'statuses':
+        return ['SUPERADMIN'].includes(user.role);
+      case 'cms':
+        return ['SUPERADMIN', 'ADMIN'].includes(user.role);
+      default:
+        return false;
+    }
+  }
+
+  getDefaultRoute(): string {
+    const user = this.currentUser();
+    if (!user) return '/login';
+    if (user.role === 'HOUSEKEEPING') return '/pms/housekeeping';
+    return '/pms/rack';
   }
 
   login(email: string, pass: string) {

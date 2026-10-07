@@ -977,6 +977,18 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
             </button>
           </div>
 
+          <!-- Aviso de Cuenta Liquidada / Check-Out Finalizado -->
+          <div
+            *ngIf="currentFolio()!.status?.code === 'CHECKED_OUT' || currentFolio()!.status?.code === 'CANCELLED'"
+            class="mb-4 p-3.5 bg-slate-100 border border-slate-200 rounded-2xl flex items-center gap-3 text-xs text-slate-700"
+          >
+            <app-icon name="lock" [size]="18" class="text-amber-600 shrink-0"></app-icon>
+            <div>
+              <span class="font-bold text-slate-900 block">Cuenta Liquidada • Check-Out Finalizado</span>
+              <span class="text-slate-600">Por control contable y auditoría de egresos, no está permitido ingresar consumos adicionales ni alterar ofertas tras la salida del huésped.</span>
+            </div>
+          </div>
+
           <!-- Totals Ribbon -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6 text-center">
             <div>
@@ -1010,6 +1022,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 Consumos Extras / Frigobar
               </h4>
               <button
+                *ngIf="currentFolio()!.status?.code !== 'CHECKED_OUT' && currentFolio()!.status?.code !== 'CANCELLED'"
                 type="button"
                 (click)="showAddExtra.set(true)"
                 class="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 text-xs font-bold transition-colors cursor-pointer"
@@ -1040,6 +1053,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 Descuentos & Ofertas Aplicadas
               </h4>
               <button
+                *ngIf="currentFolio()!.status?.code !== 'CHECKED_OUT' && currentFolio()!.status?.code !== 'CANCELLED'"
                 type="button"
                 (click)="showAddDiscount.set(true)"
                 class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-900 text-xs font-bold transition-colors cursor-pointer"
@@ -1071,6 +1085,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 Pagos & Abonos Realizados
               </h4>
               <button
+                *ngIf="currentFolio()!.status?.code !== 'CHECKED_OUT' || getPendingBalance(currentFolio()!) > 0"
                 type="button"
                 (click)="showAddPayment.set(true)"
                 class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-900 text-xs font-bold transition-colors cursor-pointer"
@@ -1410,8 +1425,16 @@ export class ReservationsComponent implements OnInit {
       next: (data) => {
         this.reservations.set(data);
         if (this.currentFolio()) {
-          const updated = data.find((r) => r.id === this.currentFolio().id);
-          if (updated) this.currentFolio.set(updated);
+          const currentId = this.currentFolio()!.id;
+          const updated = data.find((r) => r.id === currentId);
+          if (updated) {
+            this.currentFolio.set({
+              ...this.currentFolio()!,
+              ...updated,
+              extra_charges: updated.extra_charges || this.currentFolio()!.extra_charges,
+              payments: updated.payments || this.currentFolio()!.payments
+            });
+          }
         }
         if (callback) callback();
       },
@@ -1808,12 +1831,20 @@ export class ReservationsComponent implements OnInit {
 
   saveExtraCharge() {
     const folio = this.currentFolio();
-    if (!folio || !this.extraForm.concept || !this.extraForm.unit_price) {
+    if (!folio) return;
+
+    if (folio.status?.code === 'CHECKED_OUT' || folio.status?.code === 'CANCELLED') {
+      this.toast.error('No se pueden registrar cargos adicionales en una reserva con Check-Out finalizado.');
+      this.showAddExtra.set(false);
+      return;
+    }
+
+    if (!this.extraForm.concept || !this.extraForm.unit_price) {
       this.toast.warning('Complete el concepto y precio');
       return;
     }
 
-    this.api.post(`reservations/${folio.id}/extras`, {
+    this.api.post<any>(`reservations/${folio.id}/extras`, {
       concept: this.extraForm.concept,
       quantity: this.extraForm.quantity,
       unit_price: this.extraForm.unit_price
@@ -1825,18 +1856,20 @@ export class ReservationsComponent implements OnInit {
         this.extraForm = { concept: '', quantity: 1, unit_price: 5.0 };
         this.loadReservations();
       },
-      error: () => this.toast.error('Error al registrar cargo extra')
+      error: (err) => this.toast.error(err?.error?.message || 'Error al registrar cargo extra')
     });
   }
 
   saveDirectPayment() {
     const folio = this.currentFolio();
-    if (!folio || !this.directPaymentForm.amount || !this.directPaymentForm.payment_method_id) {
+    if (!folio) return;
+
+    if (!this.directPaymentForm.amount || !this.directPaymentForm.payment_method_id) {
       this.toast.warning('Ingrese el monto y método de pago');
       return;
     }
 
-    this.api.post(`reservations/${folio.id}/payments`, this.directPaymentForm).subscribe({
+    this.api.post<any>(`reservations/${folio.id}/payments`, this.directPaymentForm).subscribe({
       next: (updated) => {
         this.toast.success('Pago abonado correctamente');
         this.currentFolio.set(updated);
@@ -1849,12 +1882,20 @@ export class ReservationsComponent implements OnInit {
 
   saveDiscount() {
     const folio = this.currentFolio();
-    if (!folio || Number(this.discountForm.discount_amount) <= 0) {
+    if (!folio) return;
+
+    if (folio.status?.code === 'CHECKED_OUT' || folio.status?.code === 'CANCELLED') {
+      this.toast.error('No se pueden aplicar ofertas ni descuentos en una reserva con Check-Out finalizado.');
+      this.showAddDiscount.set(false);
+      return;
+    }
+
+    if (Number(this.discountForm.discount_amount) <= 0) {
       this.toast.warning('Ingrese un monto de descuento válido mayor a 0');
       return;
     }
 
-    this.api.post(`reservations/${folio.id}/discount`, {
+    this.api.post<any>(`reservations/${folio.id}/discount`, {
       discount_amount: Number(this.discountForm.discount_amount),
       reason: this.discountForm.reason || 'Descuento / Oferta especial'
     }).subscribe({

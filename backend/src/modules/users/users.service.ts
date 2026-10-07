@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -8,13 +8,66 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
-export class UsersService {
+export class UsersService implements OnModuleInit {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     @InjectRepository(Role)
     private readonly roleRepo: Repository<Role>,
   ) {}
+
+  async onModuleInit() {
+    await this.seedRolePermissions();
+  }
+
+  async seedRolePermissions() {
+    const defaultPermissions: Record<string, string[]> = {
+      SUPERADMIN: ['*'],
+      ADMIN: [
+        'rack:*',
+        'rooms:*',
+        'reservations:*',
+        'cash:*',
+        'housekeeping:*',
+        'reports:*',
+        'cms:*',
+        'users:view',
+        'users:manage',
+        'statuses:view',
+      ],
+      RECEPTIONIST: [
+        'rack:view',
+        'rack:walkin',
+        'rack:checkin',
+        'rack:checkout',
+        'rooms:view',
+        'reservations:view',
+        'reservations:create',
+        'reservations:checkin',
+        'reservations:checkout',
+        'reservations:folio',
+        'cash:view',
+        'cash:shift',
+        'cash:movement',
+        'housekeeping:view',
+      ],
+      HOUSEKEEPING: [
+        'housekeeping:view',
+        'housekeeping:manage',
+        'rack:view',
+      ],
+    };
+
+    const roles = await this.roleRepo.find();
+    for (const role of roles) {
+      if (!role.permissions || role.permissions.length === 0) {
+        if (defaultPermissions[role.name]) {
+          role.permissions = defaultPermissions[role.name];
+          await this.roleRepo.save(role);
+        }
+      }
+    }
+  }
 
   async findAll() {
     const users = await this.userRepo.find({

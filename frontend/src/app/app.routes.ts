@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { setupGuard } from './core/guards/setup.guard';
 import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
 import { PublicWebComponent } from './features/public-web/public-web.component';
 import { SetupWizardComponent } from './features/setup-wizard/setup-wizard.component';
 import { LoginComponent } from './features/login/login.component';
@@ -39,15 +40,25 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'rack', pathMatch: 'full' },
-      { path: 'rack', component: RackComponent },
-      { path: 'reservations', component: ReservationsComponent },
-      { path: 'housekeeping', component: HousekeepingComponent },
-      { path: 'cash', component: CashComponent },
-      { path: 'users', component: UsersComponent },
-      { path: 'statuses', component: StatusesManagerComponent },
-      { path: 'cms', component: CmsAdminComponent },
-      { path: 'rooms', loadComponent: () => import('./features/pms/rooms/rooms-manager.component').then(m => m.RoomsManagerComponent) },
-      { path: 'reports', loadComponent: () => import('./features/pms/reports/reports.component').then(m => m.ReportsComponent) },
+      { path: 'rack', component: RackComponent, canActivate: [roleGuard], data: { module: 'rack' } },
+      {
+        path: 'rooms',
+        loadComponent: () => import('./features/pms/rooms/rooms-manager.component').then(m => m.RoomsManagerComponent),
+        canActivate: [roleGuard],
+        data: { module: 'rooms' }
+      },
+      { path: 'reservations', component: ReservationsComponent, canActivate: [roleGuard], data: { module: 'reservations' } },
+      { path: 'housekeeping', component: HousekeepingComponent, canActivate: [roleGuard], data: { module: 'housekeeping' } },
+      { path: 'cash', component: CashComponent, canActivate: [roleGuard], data: { module: 'cash' } },
+      {
+        path: 'reports',
+        loadComponent: () => import('./features/pms/reports/reports.component').then(m => m.ReportsComponent),
+        canActivate: [roleGuard],
+        data: { module: 'reports' }
+      },
+      { path: 'users', component: UsersComponent, canActivate: [roleGuard], data: { module: 'users' } },
+      { path: 'statuses', component: StatusesManagerComponent, canActivate: [roleGuard], data: { module: 'statuses' } },
+      { path: 'cms', component: CmsAdminComponent, canActivate: [roleGuard], data: { module: 'cms' } },
     ]
   },
   // Fallback

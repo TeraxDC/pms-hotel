@@ -27,6 +27,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
         <!-- Navigation Links -->
         <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           <a
+            *ngIf="auth.canAccess('rack')"
             routerLink="/pms/rack"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -36,6 +37,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
           </a>
 
           <a
+            *ngIf="auth.canAccess('rooms')"
             routerLink="/pms/rooms"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -45,6 +47,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
           </a>
 
           <a
+            *ngIf="auth.canAccess('reservations')"
             routerLink="/pms/reservations"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -54,6 +57,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
           </a>
 
           <a
+            *ngIf="auth.canAccess('cash')"
             routerLink="/pms/cash"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -63,6 +67,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
           </a>
 
           <a
+            *ngIf="auth.canAccess('housekeeping')"
             routerLink="/pms/housekeeping"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -72,6 +77,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
           </a>
 
           <a
+            *ngIf="auth.canAccess('reports')"
             routerLink="/pms/reports"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -80,11 +86,16 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
             Reportes & Exportación
           </a>
 
-          <div class="pt-4 pb-2">
+          <!-- Configuración Group -->
+          <div
+            *ngIf="auth.canAccess('users') || auth.canAccess('statuses') || auth.canAccess('cms')"
+            class="pt-4 pb-2"
+          >
             <span class="px-3.5 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Configuración</span>
           </div>
 
           <a
+            *ngIf="auth.canAccess('users')"
             routerLink="/pms/users"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -94,6 +105,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
           </a>
 
           <a
+            *ngIf="auth.canAccess('statuses')"
             routerLink="/pms/statuses"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -103,6 +115,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
           </a>
 
           <a
+            *ngIf="auth.canAccess('cms')"
             routerLink="/pms/cms"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -130,11 +143,11 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5 truncate">
               <div class="w-8 h-8 rounded-lg bg-slate-800 text-amber-400 flex items-center justify-center font-bold text-xs shrink-0">
-                <app-icon name="user" [size]="16"></app-icon>
+                <app-icon [name]="getRoleIcon(auth.currentUser()?.role)" [size]="16"></app-icon>
               </div>
               <div class="truncate">
                 <div class="text-xs font-bold text-white truncate">{{ auth.currentUser()?.full_name || 'Usuario' }}</div>
-                <div class="text-[10px] text-slate-400 truncate">{{ auth.currentUser()?.role_display_name || 'Admin' }}</div>
+                <div class="text-[10px] text-amber-400/90 font-medium truncate">{{ auth.currentUser()?.role_display_name || auth.currentUser()?.role || 'Admin' }}</div>
               </div>
             </div>
 
@@ -160,8 +173,23 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
             <span class="text-xs font-semibold text-slate-600">Recepción & Operaciones</span>
           </div>
 
-          <div class="flex items-center gap-4">
-            <div class="text-right hidden sm:block">
+          <div class="flex items-center gap-3">
+            <!-- User Role Badge -->
+            <span
+              *ngIf="auth.currentUser() as u"
+              class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide border shadow-2xs"
+              [ngClass]="{
+                'bg-purple-50 text-purple-700 border-purple-200': u.role === 'SUPERADMIN',
+                'bg-blue-50 text-blue-700 border-blue-200': u.role === 'ADMIN',
+                'bg-amber-50 text-amber-700 border-amber-200': u.role === 'RECEPTIONIST',
+                'bg-emerald-50 text-emerald-700 border-emerald-200': u.role === 'HOUSEKEEPING'
+              }"
+            >
+              <app-icon [name]="getRoleIcon(u.role)" [size]="13"></app-icon>
+              {{ u.role_display_name || u.role }}
+            </span>
+
+            <div class="text-right hidden md:block">
               <span class="text-xs font-bold text-slate-800 block">{{ todayDate }}</span>
               <span class="text-[10px] text-emerald-600 font-semibold block">Sistema en Línea</span>
             </div>
@@ -177,6 +205,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
       <!-- MOBILE BOTTOM NAVIGATION BAR (PWA) -->
       <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around py-2 px-3 shadow-xl">
         <a
+          *ngIf="auth.canAccess('rack')"
           routerLink="/pms/rack"
           routerLinkActive="text-amber-400"
           class="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white transition-colors"
@@ -186,6 +215,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
         </a>
 
         <a
+          *ngIf="auth.canAccess('reservations')"
           routerLink="/pms/reservations"
           routerLinkActive="text-amber-400"
           class="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white transition-colors"
@@ -195,6 +225,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
         </a>
 
         <a
+          *ngIf="auth.canAccess('cash')"
           routerLink="/pms/cash"
           routerLinkActive="text-amber-400"
           class="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white transition-colors"
@@ -204,6 +235,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
         </a>
 
         <a
+          *ngIf="auth.canAccess('housekeeping')"
           routerLink="/pms/housekeeping"
           routerLinkActive="text-amber-400"
           class="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white transition-colors"
@@ -232,4 +264,14 @@ export class PmsLayoutComponent {
     month: 'long',
     year: 'numeric'
   }).format(new Date());
+
+  getRoleIcon(role?: string): string {
+    switch (role) {
+      case 'SUPERADMIN': return 'shield';
+      case 'ADMIN': return 'sliders';
+      case 'RECEPTIONIST': return 'bed';
+      case 'HOUSEKEEPING': return 'sparkles';
+      default: return 'user';
+    }
+  }
 }

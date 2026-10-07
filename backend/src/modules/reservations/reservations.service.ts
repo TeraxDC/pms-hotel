@@ -50,6 +50,8 @@ export class ReservationsService {
         status: true,
         main_guest: true,
         rooms: { room: { room_type: true, housekeeping_status: true, operational_status: true } },
+        extra_charges: { category: true },
+        payments: { payment_method: true },
       },
       order: { created_at: 'DESC' },
     });
@@ -344,6 +346,11 @@ export class ReservationsService {
     data: { concept: string; quantity: number; unit_price: number; category_id?: number; room_id?: number },
   ) {
     const res = await this.findOne(reservationId);
+    if (res.status?.code === 'CHECKED_OUT' || res.status?.code === 'CANCELLED') {
+      throw new BadRequestException(
+        'No se pueden registrar cargos adicionales en una reserva con Check-Out finalizado o cancelada.',
+      );
+    }
     const total = Number(data.quantity) * Number(data.unit_price);
 
     const charge = this.extraRepo.create({
@@ -466,6 +473,11 @@ export class ReservationsService {
 
   async applyDiscount(id: number, data: { discount_amount: number; reason?: string }) {
     const res = await this.findOne(id);
+    if (res.status?.code === 'CHECKED_OUT' || res.status?.code === 'CANCELLED') {
+      throw new BadRequestException(
+        'No se pueden aplicar ofertas ni descuentos en una reserva con Check-Out finalizado o cancelada.',
+      );
+    }
     const discount = Number(data.discount_amount || 0);
     const newTotal = Math.max(0, Number(res.total_accommodation || 0) + Number(res.total_extras || 0) - discount);
     await this.reservationRepo.update(id, {

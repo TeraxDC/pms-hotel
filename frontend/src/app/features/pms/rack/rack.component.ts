@@ -309,7 +309,21 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Estado de Limpieza (Housekeeping)
               </label>
+
+              <!-- Si la habitación está con Check-In activo (Ocupada), la limpieza está protegida -->
+              <div
+                *ngIf="selectedRoom()!.operational_status?.code === 'OCCUPIED'"
+                class="p-3 bg-amber-50/80 border border-amber-200 rounded-xl flex items-center gap-2.5 text-xs text-amber-800"
+              >
+                <app-icon name="lock" [size]="16" class="text-amber-600 shrink-0"></app-icon>
+                <span>
+                  <strong>Limpieza Protegida:</strong> Habitación con Check-In activo. No se permite alterar el estado de limpieza durante la estancia del huésped.
+                </span>
+              </div>
+
+              <!-- Si la habitación NO está ocupada, se permite cambiar el estado de limpieza -->
               <app-custom-select
+                *ngIf="selectedRoom()!.operational_status?.code !== 'OCCUPIED'"
                 [options]="hkOptions"
                 [(ngModel)]="editStatusData.hkId"
               ></app-custom-select>
@@ -482,17 +496,23 @@ export class RackComponent implements OnInit {
     const room = this.selectedRoom();
     if (!room) return;
 
+    if (room.operational_status?.code === 'OCCUPIED' && this.editStatusData.hkId !== room.housekeeping_status_id) {
+      this.toast.warning('No está permitido modificar el estado de limpieza mientras la habitación tenga un Check-In activo.');
+      this.editStatusData.hkId = room.housekeeping_status_id;
+      return;
+    }
+
     this.api.put(`rooms/${room.id}/status`, {
       operational_status_id: this.editStatusData.opId,
-      housekeeping_status_id: this.editStatusData.hkId
+      housekeeping_status_id: room.operational_status?.code === 'OCCUPIED' ? room.housekeeping_status_id : this.editStatusData.hkId
     }).subscribe({
       next: () => {
         this.toast.success(`Habitación ${room.room_number} actualizada`);
         this.selectedRoom.set(null);
         this.loadRooms();
       },
-      error: () => {
-        this.toast.error('Error al actualizar el estado de la habitación');
+      error: (err) => {
+        this.toast.error(err?.error?.message || 'Error al actualizar el estado de la habitación');
       }
     });
   }
