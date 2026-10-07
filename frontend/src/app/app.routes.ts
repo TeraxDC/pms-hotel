@@ -9,6 +9,9 @@ import { RackComponent } from './features/pms/rack/rack.component';
 import { ReservationsComponent } from './features/pms/reservations/reservations.component';
 import { HousekeepingComponent } from './features/pms/housekeeping/housekeeping.component';
 import { StatusesManagerComponent } from './features/pms/statuses/statuses-manager.component';
+import { UsersComponent } from './features/pms/users/users.component';
+import { CashComponent } from './features/pms/cash/cash.component';
+import { CmsAdminComponent } from './features/pms/cms/cms-admin.component';
 
 export const routes: Routes = [
   // Portal público informativo
@@ -39,7 +42,10 @@ export const routes: Routes = [
       { path: 'rack', component: RackComponent },
       { path: 'reservations', component: ReservationsComponent },
       { path: 'housekeeping', component: HousekeepingComponent },
+      { path: 'cash', component: CashComponent },
+      { path: 'users', component: UsersComponent },
       { path: 'statuses', component: StatusesManagerComponent },
+      { path: 'cms', component: CmsAdminComponent },
     ]
   },
   // Fallback

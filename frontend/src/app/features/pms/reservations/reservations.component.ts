@@ -20,10 +20,10 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
         <div>
           <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <app-icon name="calendar" [size]="24" class="text-amber-600"></app-icon>
-            Gestión de Reservas & Huéspedes
+            Gestión de Reservas, Huéspedes & Folios
           </h1>
           <p class="text-xs text-slate-500">
-            Control de ingresos, salidas, folios y cuentas de huéspedes.
+            Control de ingresos, salidas, consumos de frigobar y facturación de cuentas.
           </p>
         </div>
 
@@ -126,13 +126,13 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                     Check-Out
                   </button>
 
-                  <!-- Botón Ver Folio / Pagos -->
+                  <!-- Botón Ver Folio Completo -->
                   <button
                     type="button"
-                    (click)="viewFolio(res)"
+                    (click)="openFolioModal(res)"
                     class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold text-xs transition-colors cursor-pointer"
                   >
-                    Folio
+                    Ver Folio
                   </button>
                 </td>
               </tr>
@@ -145,6 +145,251 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- MODAL FOLIO COMPLETO & CARGOS EXTRAS -->
+      <div
+        *ngIf="showFolioModal() && currentFolio()"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-2xl w-full p-6 text-slate-800 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md bg-slate-900 text-amber-400 font-mono text-xs font-bold">
+                  {{ currentFolio()!.reservation_code }}
+                </span>
+                <h3 class="text-base font-bold text-slate-900">
+                  Folio: {{ currentFolio()!.main_guest?.first_name }} {{ currentFolio()!.main_guest?.last_name }}
+                </h3>
+              </div>
+              <span class="text-xs text-slate-400">
+                Estadía: {{ currentFolio()!.check_in_date }} al {{ currentFolio()!.check_out_date }}
+              </span>
+            </div>
+
+            <button (click)="showFolioModal.set(false)" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer">
+              <app-icon name="x" [size]="18"></app-icon>
+            </button>
+          </div>
+
+          <!-- Totals Ribbon -->
+          <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6 text-center">
+            <div>
+              <span class="text-[10px] font-bold uppercase text-slate-400 block">Total Estancia</span>
+              <span class="text-lg font-black text-slate-900 block">\${{ currentFolio()!.total_accommodation }}</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase text-slate-400 block">Cargos Extras</span>
+              <span class="text-lg font-black text-amber-600 block">+\${{ currentFolio()!.total_extras }}</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase text-slate-400 block">Saldo Pendiente</span>
+              <span
+                class="text-lg font-black block"
+                [ngClass]="getPendingBalance(currentFolio()!) > 0 ? 'text-red-600' : 'text-emerald-600'"
+              >
+                \${{ getPendingBalance(currentFolio()!) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Cargos Extras (Frigobar / Servicios) -->
+          <div class="space-y-3 mb-6">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <app-icon name="shopping-bag" [size]="16" class="text-amber-600"></app-icon>
+                Consumos Extras / Frigobar
+              </h4>
+              <button
+                type="button"
+                (click)="showAddExtra.set(true)"
+                class="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 text-xs font-bold transition-colors cursor-pointer"
+              >
+                + Agregar Consumo
+              </button>
+            </div>
+
+            <div class="border border-slate-100 rounded-xl overflow-hidden text-xs">
+              <div *ngFor="let charge of currentFolio()!.extra_charges" class="p-3 bg-white flex items-center justify-between border-b border-slate-50">
+                <div>
+                  <span class="font-bold text-slate-900 block">{{ charge.concept }}</span>
+                  <span class="text-[10px] text-slate-400">{{ charge.category?.name || 'Consumo' }} (Cant: {{ charge.quantity }})</span>
+                </div>
+                <span class="font-bold text-slate-800">\${{ charge.total_price }}</span>
+              </div>
+              <div *ngIf="!currentFolio()!.extra_charges || currentFolio()!.extra_charges.length === 0" class="p-3 text-center text-slate-400">
+                Sin cargos extras registrados
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagos y Abonos -->
+          <div class="space-y-3 mb-6">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <app-icon name="credit-card" [size]="16" class="text-emerald-600"></app-icon>
+                Pagos & Abonos Realizados
+              </h4>
+              <button
+                type="button"
+                (click)="showAddPayment.set(true)"
+                class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-900 text-xs font-bold transition-colors cursor-pointer"
+              >
+                + Registrar Pago
+              </button>
+            </div>
+
+            <div class="border border-slate-100 rounded-xl overflow-hidden text-xs">
+              <div *ngFor="let pay of currentFolio()!.payments" class="p-3 bg-white flex items-center justify-between border-b border-slate-50">
+                <div>
+                  <span class="font-bold text-slate-900 block">{{ pay.payment_method?.name || 'Pago' }}</span>
+                  <span class="text-[10px] text-slate-400">{{ pay.paid_at | date:'short' }} {{ pay.reference_code ? '• Ref: ' + pay.reference_code : '' }}</span>
+                </div>
+                <span class="font-bold text-emerald-600">+\${{ pay.amount }}</span>
+              </div>
+              <div *ngIf="!currentFolio()!.payments || currentFolio()!.payments.length === 0" class="p-3 text-center text-slate-400">
+                No hay pagos registrados aún
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <button
+              type="button"
+              (click)="printReceipt()"
+              class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+            >
+              <app-icon name="file-text" [size]="16"></app-icon>
+              Imprimir Comprobante
+            </button>
+
+            <button
+              type="button"
+              (click)="showFolioModal.set(false)"
+              class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer"
+            >
+              Cerrar Folio
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- MODAL AGREGAR CONSUMO EXTRA -->
+      <div
+        *ngIf="showAddExtra()"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-sm w-full p-6 text-slate-800">
+          <h3 class="text-sm font-bold text-slate-900 mb-3">Agregar Consumo de Frigobar / Servicio</h3>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Concepto *</label>
+              <input
+                type="text"
+                [(ngModel)]="extraForm.concept"
+                placeholder="Ej. Agua Mineral con Gas 500ml"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500"
+              />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Cantidad</label>
+                <input
+                  type="number"
+                  [(ngModel)]="extraForm.quantity"
+                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                />
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Precio Unit. (\$) *</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  [(ngModel)]="extraForm.unit_price"
+                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              (click)="showAddExtra.set(false)"
+              class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              (click)="saveExtraCharge()"
+              class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs cursor-pointer"
+            >
+              Guardar Cargo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL REGISTRAR PAGO -->
+      <div
+        *ngIf="showAddPayment()"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-sm w-full p-6 text-slate-800">
+          <h3 class="text-sm font-bold text-slate-900 mb-3">Registrar Pago / Abono a la Cuenta</h3>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Monto a Cobrar (\$) *</label>
+              <input
+                type="number"
+                step="0.5"
+                [(ngModel)]="paymentForm.amount"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-base font-black text-slate-900 focus:outline-hidden focus:border-amber-500"
+              />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Método de Pago *</label>
+              <app-custom-select
+                [options]="payMethodOptions"
+                [(ngModel)]="paymentForm.payment_method_id"
+              ></app-custom-select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Nº Operación / Voucher</label>
+              <input
+                type="text"
+                [(ngModel)]="paymentForm.reference_code"
+                placeholder="OP-987654"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              (click)="showAddPayment.set(false)"
+              class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              (click)="savePayment()"
+              class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer"
+            >
+              Cobrar Abono
+            </button>
+          </div>
         </div>
       </div>
 
@@ -166,7 +411,6 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
           </div>
 
           <form (ngSubmit)="createReservation()" class="space-y-4">
-            <!-- Datos del Huésped -->
             <div class="border-b border-slate-100 pb-3">
               <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">Huésped Titular</span>
               <div class="grid grid-cols-2 gap-3">
@@ -216,7 +460,6 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               </div>
             </div>
 
-            <!-- Habitación y Fechas -->
             <div>
               <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">Asignación y Fechas</span>
               <div class="grid grid-cols-2 gap-3 mb-3">
@@ -284,7 +527,14 @@ export class ReservationsComponent implements OnInit {
   reservations = signal<any[]>([]);
   rooms = signal<any[]>([]);
   roomOptions: SelectOption[] = [];
+  payMethodOptions: SelectOption[] = [];
+
   showNewModal = signal<boolean>(false);
+  showFolioModal = signal<boolean>(false);
+  showAddExtra = signal<boolean>(false);
+  showAddPayment = signal<boolean>(false);
+
+  currentFolio = signal<any | null>(null);
 
   newForm = {
     guest: {
@@ -300,14 +550,33 @@ export class ReservationsComponent implements OnInit {
     total_guests: 1
   };
 
+  extraForm = {
+    concept: '',
+    quantity: 1,
+    unit_price: 5.0
+  };
+
+  paymentForm = {
+    amount: 50.0,
+    payment_method_id: 1,
+    reference_code: ''
+  };
+
   ngOnInit() {
     this.loadReservations();
     this.loadRooms();
+    this.loadPaymentMethods();
   }
 
   loadReservations() {
     this.api.get<any[]>('reservations').subscribe({
-      next: (data) => this.reservations.set(data),
+      next: (data) => {
+        this.reservations.set(data);
+        if (this.currentFolio()) {
+          const updated = data.find((r) => r.id === this.currentFolio().id);
+          if (updated) this.currentFolio.set(updated);
+        }
+      },
       error: () => this.toast.error('No se pudieron cargar las reservas')
     });
   }
@@ -323,6 +592,15 @@ export class ReservationsComponent implements OnInit {
     });
   }
 
+  loadPaymentMethods() {
+    this.api.get<any[]>('statuses/payment-methods').subscribe((data) => {
+      this.payMethodOptions = data.map((pm) => ({
+        value: pm.id,
+        label: pm.name
+      }));
+    });
+  }
+
   getPendingBalance(res: any): number {
     return Math.max(0, Number(res.total_amount || 0) - Number(res.paid_amount || 0));
   }
@@ -330,6 +608,61 @@ export class ReservationsComponent implements OnInit {
   openNewModal() {
     this.newForm.selectedRoomId = this.rooms()[0]?.id || null;
     this.showNewModal.set(true);
+  }
+
+  openFolioModal(res: any) {
+    this.api.get(`reservations/${res.id}`).subscribe({
+      next: (full) => {
+        this.currentFolio.set(full);
+        this.paymentForm.amount = this.getPendingBalance(full);
+        this.showFolioModal.set(true);
+      }
+    });
+  }
+
+  saveExtraCharge() {
+    const folio = this.currentFolio();
+    if (!folio || !this.extraForm.concept || !this.extraForm.unit_price) {
+      this.toast.warning('Complete el concepto y precio');
+      return;
+    }
+
+    this.api.post(`reservations/${folio.id}/extras`, {
+      concept: this.extraForm.concept,
+      quantity: this.extraForm.quantity,
+      unit_price: this.extraForm.unit_price
+    }).subscribe({
+      next: (updated) => {
+        this.toast.success('Cargo extra registrado al folio');
+        this.currentFolio.set(updated);
+        this.showAddExtra.set(false);
+        this.extraForm = { concept: '', quantity: 1, unit_price: 5.0 };
+        this.loadReservations();
+      },
+      error: () => this.toast.error('Error al registrar cargo extra')
+    });
+  }
+
+  savePayment() {
+    const folio = this.currentFolio();
+    if (!folio || !this.paymentForm.amount || !this.paymentForm.payment_method_id) {
+      this.toast.warning('Ingrese el monto y método de pago');
+      return;
+    }
+
+    this.api.post(`reservations/${folio.id}/payments`, this.paymentForm).subscribe({
+      next: (updated) => {
+        this.toast.success('Pago registrado correctamente');
+        this.currentFolio.set(updated);
+        this.showAddPayment.set(false);
+        this.loadReservations();
+      },
+      error: () => this.toast.error('Error al registrar pago')
+    });
+  }
+
+  printReceipt() {
+    window.print();
   }
 
   async doCheckIn(res: any) {
@@ -372,14 +705,6 @@ export class ReservationsComponent implements OnInit {
       },
       error: () => this.toast.error('Error al procesar el Check-Out')
     });
-  }
-
-  viewFolio(res: any) {
-    this.dialog.alert(
-      `Folio: ${res.reservation_code}`,
-      `Total Hospedaje: \$${res.total_accommodation} | Cargos Extras: \$${res.total_extras} | Total Pagado: \$${res.paid_amount} | Saldo: \$${this.getPendingBalance(res)}`,
-      'info'
-    );
   }
 
   createReservation() {

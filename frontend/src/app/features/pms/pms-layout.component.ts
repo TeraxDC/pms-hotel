@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
@@ -20,12 +20,12 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
           </div>
           <div>
             <span class="text-base font-extrabold text-white tracking-tight block">hotelSJB</span>
-            <span class="text-[10px] uppercase tracking-widest text-slate-400 font-semibold block">Panel de Control</span>
+            <span class="text-[10px] uppercase tracking-widest text-slate-400 font-semibold block">Suite Hotelera</span>
           </div>
         </div>
 
         <!-- Navigation Links -->
-        <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+        <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           <a
             routerLink="/pms/rack"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
@@ -41,7 +41,16 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
           >
             <app-icon name="calendar" [size]="18"></app-icon>
-            Reservas & Huéspedes
+            Reservas & Folios
+          </a>
+
+          <a
+            routerLink="/pms/cash"
+            routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
+            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <app-icon name="dollar-sign" [size]="18"></app-icon>
+            Caja Chica & Turnos
           </a>
 
           <a
@@ -53,6 +62,19 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
             Housekeeping (Limpieza)
           </a>
 
+          <div class="pt-4 pb-2">
+            <span class="px-3.5 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Configuración</span>
+          </div>
+
+          <a
+            routerLink="/pms/users"
+            routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
+            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <app-icon name="users" [size]="18"></app-icon>
+            Usuarios & Roles RBAC
+          </a>
+
           <a
             routerLink="/pms/statuses"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
@@ -60,6 +82,15 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
           >
             <app-icon name="sliders" [size]="18"></app-icon>
             Estados & Colores HEX
+          </a>
+
+          <a
+            routerLink="/pms/cms"
+            routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
+            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <app-icon name="edit" [size]="18"></app-icon>
+            Editor Web (CMS)
           </a>
 
           <div class="pt-4 pb-2">
@@ -146,21 +177,21 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
         </a>
 
         <a
+          routerLink="/pms/cash"
+          routerLinkActive="text-amber-400"
+          class="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white transition-colors"
+        >
+          <app-icon name="dollar-sign" [size]="20"></app-icon>
+          <span>Caja</span>
+        </a>
+
+        <a
           routerLink="/pms/housekeeping"
           routerLinkActive="text-amber-400"
           class="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white transition-colors"
         >
           <app-icon name="sparkles" [size]="20"></app-icon>
           <span>Limpieza</span>
-        </a>
-
-        <a
-          routerLink="/pms/statuses"
-          routerLinkActive="text-amber-400"
-          class="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-white transition-colors"
-        >
-          <app-icon name="sliders" [size]="20"></app-icon>
-          <span>Estados</span>
         </a>
 
         <button

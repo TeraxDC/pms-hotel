@@ -7,6 +7,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { CmsModule } from './modules/cms/cms.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
+import { UsersModule } from './modules/users/users.module';
+import { CashModule } from './modules/cash/cash.module';
 import { DatabaseSeederService } from './database/database-seeder.service';
 import { Role } from './modules/users/entities/role.entity';
 import { User } from './modules/users/entities/user.entity';
@@ -78,6 +80,8 @@ import { CashMovement } from './modules/cash/entities/cash-movement.entity';
     RoomsModule,
     CmsModule,
     ReservationsModule,
+    UsersModule,
+    CashModule,
   ],
   providers: [DatabaseSeederService],
 })
