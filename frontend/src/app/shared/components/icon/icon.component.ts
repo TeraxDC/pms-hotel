@@ -291,6 +291,12 @@ import { CommonModule } from '@angular/common';
           <circle cx="17" cy="17" r="2" />
         </ng-container>
 
+        <!-- TV / Smart TV -->
+        <ng-container *ngSwitchCase="'tv'">
+          <rect width="20" height="15" x="2" y="3" rx="2" />
+          <polyline points="17 21 12 18 7 21" />
+        </ng-container>
+
         <!-- Fallback Default Icon -->
         <ng-container *ngSwitchDefault>
           <circle cx="12" cy="12" r="10" />

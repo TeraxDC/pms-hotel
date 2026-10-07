@@ -254,6 +254,20 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               <div class="text-xs text-slate-400 pt-1">
                 Habitaciones asignadas: <strong class="text-slate-800">{{ getRoomCountByType(type.id) }}</strong>
               </div>
+
+              <!-- Amenities Tags -->
+              <div *ngIf="type.amenities && type.amenities.length > 0" class="pt-2 border-t border-slate-100">
+                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1.5">Servicios & Comodidades:</span>
+                <div class="flex flex-wrap gap-1">
+                  <span
+                    *ngFor="let a of type.amenities"
+                    class="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-[10px] font-medium text-slate-700 flex items-center gap-1"
+                  >
+                    <app-icon [name]="getAmenityIcon(a)" [size]="11" class="text-amber-600"></app-icon>
+                    <span>{{ getAmenityLabel(a) }}</span>
+                  </span>
+                </div>
+              </div>
             </div>
 
             <!-- Footer Action -->
@@ -488,10 +502,71 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               <textarea
                 [(ngModel)]="typeForm.description"
                 name="type_description"
-                rows="3"
+                rows="2"
                 placeholder="Detalle de comodidad, vistas y beneficios incluidos..."
                 class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs focus:border-amber-500 focus:outline-none"
               ></textarea>
+            </div>
+
+            <!-- Selector de Servicios & Comodidades (Amenities) -->
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="block text-xs font-bold text-slate-900">
+                    Servicios & Comodidades de la Habitación (Amenities)
+                  </label>
+                  <p class="text-[11px] text-slate-500">
+                    Seleccione los servicios incluidos que se mostrarán en la web y catálogo.
+                  </p>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-900 font-bold text-[11px] border border-amber-300">
+                  {{ typeForm.amenities.length }} activos
+                </span>
+              </div>
+
+              <!-- Quick Toggles Grid -->
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  *ngFor="let am of availableAmenitiesCatalog"
+                  (click)="toggleAmenityInForm(am.code)"
+                  class="px-3 py-2 rounded-xl border text-left text-xs flex items-center gap-2 transition-all cursor-pointer"
+                  [ngClass]="isAmenitySelected(am.code) ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-400/40' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'"
+                >
+                  <app-icon [name]="am.icon" [size]="14" [class.text-amber-600]="isAmenitySelected(am.code)" [class.text-slate-400]="!isAmenitySelected(am.code)"></app-icon>
+                  <span class="truncate">{{ am.name }}</span>
+                </button>
+              </div>
+
+              <!-- Custom Amenity Input -->
+              <div class="pt-2 border-t border-slate-200 flex items-center gap-2">
+                <input
+                  type="text"
+                  [(ngModel)]="customAmenityInput"
+                  [ngModelOptions]="{standalone: true}"
+                  placeholder="Añadir otro servicio o beneficio..."
+                  class="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-amber-500"
+                  (keyup.enter)="addCustomAmenity()"
+                />
+                <button
+                  type="button"
+                  (click)="addCustomAmenity()"
+                  class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                >
+                  + Añadir
+                </button>
+              </div>
+
+              <!-- Custom selected tags -->
+              <div *ngIf="getCustomAmenitiesInForm().length > 0" class="flex flex-wrap gap-1.5 pt-1">
+                <span
+                  *ngFor="let ca of getCustomAmenitiesInForm()"
+                  class="px-2 py-0.5 rounded-lg bg-amber-100/80 border border-amber-300 text-amber-950 text-[11px] font-semibold flex items-center gap-1.5"
+                >
+                  <span>{{ ca }}</span>
+                  <button type="button" (click)="removeAmenityFromForm(ca)" class="text-amber-700 hover:text-red-700 font-black cursor-pointer">×</button>
+                </span>
+              </div>
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
@@ -549,13 +624,29 @@ export class RoomsManagerComponent implements OnInit {
   showTypeModal = false;
   editingTypeId: number | null = null;
   isSavingType = false;
+  customAmenityInput: string = '';
+
+  availableAmenitiesCatalog = [
+    { code: 'wifi', name: 'WiFi 5G Alta Velocidad', icon: 'wifi' },
+    { code: 'tv', name: 'Smart TV Cable', icon: 'tv' },
+    { code: 'ac', name: 'Aire Acondicionado / Climatizador', icon: 'sparkles' },
+    { code: 'shower', name: 'Baño Privado / Agua Caliente', icon: 'shield' },
+    { code: 'frigobar', name: 'Frigobar / Minibar', icon: 'coffee' },
+    { code: 'desk', name: 'Escritorio de Trabajo', icon: 'edit' },
+    { code: 'safe', name: 'Caja Fuerte Digital', icon: 'key' },
+    { code: 'breakfast', name: 'Desayuno Buffet Incluido', icon: 'coffee' },
+    { code: 'balcony', name: 'Balcón / Vista Exterior', icon: 'sparkles' },
+    { code: 'room_service', name: 'Atención a la Habitación', icon: 'phone' }
+  ];
+
   typeForm = {
     name: '',
     code: '',
     base_price: 50,
     max_capacity: 2,
     bed_summary: '',
-    description: ''
+    description: '',
+    amenities: [] as string[]
   };
 
   ngOnInit() {
@@ -682,29 +773,74 @@ export class RoomsManagerComponent implements OnInit {
     }
   }
 
+  // --- MÉTODOS DE SERVICIOS & COMODIDADES (AMENITIES) ---
+  getAmenityLabel(code: string): string {
+    const found = this.availableAmenitiesCatalog.find((a) => a.code === code);
+    return found ? found.name : code;
+  }
+
+  getAmenityIcon(code: string): string {
+    const found = this.availableAmenitiesCatalog.find((a) => a.code === code);
+    return found ? found.icon : 'sparkles';
+  }
+
+  isAmenitySelected(code: string): boolean {
+    return this.typeForm.amenities.includes(code);
+  }
+
+  toggleAmenityInForm(code: string) {
+    if (this.isAmenitySelected(code)) {
+      this.typeForm.amenities = this.typeForm.amenities.filter((a) => a !== code);
+    } else {
+      this.typeForm.amenities.push(code);
+    }
+  }
+
+  addCustomAmenity() {
+    const val = this.customAmenityInput.trim();
+    if (!val) return;
+    if (!this.typeForm.amenities.includes(val)) {
+      this.typeForm.amenities.push(val);
+    }
+    this.customAmenityInput = '';
+  }
+
+  removeAmenityFromForm(val: string) {
+    this.typeForm.amenities = this.typeForm.amenities.filter((a) => a !== val);
+  }
+
+  getCustomAmenitiesInForm(): string[] {
+    const standardCodes = this.availableAmenitiesCatalog.map((a) => a.code);
+    return this.typeForm.amenities.filter((a) => !standardCodes.includes(a));
+  }
+
   // --- CRUD CATEGORÍAS & TARIFAS ---
   openNewTypeModal() {
     this.editingTypeId = null;
+    this.customAmenityInput = '';
     this.typeForm = {
       name: '',
       code: '',
       base_price: 50,
       max_capacity: 2,
       bed_summary: '',
-      description: ''
+      description: '',
+      amenities: ['wifi', 'tv', 'shower']
     };
     this.showTypeModal = true;
   }
 
   openEditTypeModal(type: any) {
     this.editingTypeId = type.id;
+    this.customAmenityInput = '';
     this.typeForm = {
       name: type.name,
       code: type.code,
       base_price: Number(type.base_price) || 0,
       max_capacity: type.max_capacity || 2,
       bed_summary: type.bed_summary || '',
-      description: type.description || ''
+      description: type.description || '',
+      amenities: Array.isArray(type.amenities) ? [...type.amenities] : ['wifi', 'shower']
     };
     this.showTypeModal = true;
   }

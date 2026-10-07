@@ -71,6 +71,29 @@ export class StatusesService {
   }
 
   async getExtraCategories() {
-    return this.extraCatRepo.find({ where: { is_active: true } });
+    return this.extraCatRepo.find({ where: { is_active: true }, order: { id: 'ASC' } });
+  }
+
+  async getAllExtraCategories() {
+    return this.extraCatRepo.find({ order: { id: 'ASC' } });
+  }
+
+  async createExtraCategory(data: Partial<ExtraChargeCategory>) {
+    const cat = this.extraCatRepo.create(data);
+    return this.extraCatRepo.save(cat);
+  }
+
+  async updateExtraCategory(id: number, data: Partial<ExtraChargeCategory>) {
+    const cat = await this.extraCatRepo.findOne({ where: { id } });
+    if (!cat) throw new NotFoundException('Categoría no encontrada');
+    Object.assign(cat, data);
+    return this.extraCatRepo.save(cat);
+  }
+
+  async deleteExtraCategory(id: number) {
+    const cat = await this.extraCatRepo.findOne({ where: { id } });
+    if (!cat) throw new NotFoundException('Categoría no encontrada');
+    await this.extraCatRepo.delete(id);
+    return { success: true };
   }
 }

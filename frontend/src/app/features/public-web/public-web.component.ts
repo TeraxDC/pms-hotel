@@ -287,17 +287,28 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
                     {{ type.description || 'Habitación equipada con acabados de calidad superior, iluminación cálida, escritorio de trabajo y baño privado.' }}
                   </p>
 
-                  <!-- Amenities Pills -->
+                  <!-- Amenities Pills Dinámicas -->
                   <div class="flex flex-wrap gap-1.5 mb-6">
-                    <span class="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-semibold text-slate-600 flex items-center gap-1">
-                      <app-icon name="wifi" [size]="12" class="text-slate-400"></app-icon> WiFi 5G
-                    </span>
-                    <span class="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-semibold text-slate-600 flex items-center gap-1">
-                      <app-icon name="sparkles" [size]="12" class="text-slate-400"></app-icon> Limpieza Diaria
-                    </span>
-                    <span class="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-semibold text-slate-600 flex items-center gap-1">
-                      <app-icon name="shield" [size]="12" class="text-slate-400"></app-icon> Baño Privado
-                    </span>
+                    <ng-container *ngIf="type.amenities && type.amenities.length > 0; else fallbackAmenities">
+                      <span
+                        *ngFor="let am of type.amenities"
+                        class="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-semibold text-slate-700 flex items-center gap-1"
+                      >
+                        <app-icon [name]="getAmenityIcon(am)" [size]="12" class="text-amber-600"></app-icon>
+                        <span>{{ getAmenityLabel(am) }}</span>
+                      </span>
+                    </ng-container>
+                    <ng-template #fallbackAmenities>
+                      <span class="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-semibold text-slate-600 flex items-center gap-1">
+                        <app-icon name="wifi" [size]="12" class="text-amber-600"></app-icon> WiFi 5G
+                      </span>
+                      <span class="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-semibold text-slate-600 flex items-center gap-1">
+                        <app-icon name="shield" [size]="12" class="text-amber-600"></app-icon> Baño Privado
+                      </span>
+                      <span class="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-semibold text-slate-600 flex items-center gap-1">
+                        <app-icon name="sparkles" [size]="12" class="text-amber-600"></app-icon> Limpieza Diaria
+                      </span>
+                    </ng-template>
                   </div>
                 </div>
 
@@ -801,6 +812,28 @@ export class PublicWebComponent implements OnInit {
       `Hola, deseo reservar la habitación: ${type.name} (S/. ${type.base_price}/noche). ¿Tienen disponibilidad?`
     );
     window.open(`https://wa.me/${cleanWa}?text=${msg}`, '_blank');
+  }
+
+  amenityCatalog: Record<string, { name: string; icon: string }> = {
+    wifi: { name: 'WiFi 5G', icon: 'wifi' },
+    tv: { name: 'Smart TV Cable', icon: 'tv' },
+    ac: { name: 'Aire Acondicionado', icon: 'sparkles' },
+    shower: { name: 'Baño Privado', icon: 'shield' },
+    frigobar: { name: 'Frigobar', icon: 'coffee' },
+    desk: { name: 'Escritorio', icon: 'edit' },
+    safe: { name: 'Caja Fuerte', icon: 'key' },
+    breakfast: { name: 'Desayuno Incluido', icon: 'coffee' },
+    balcony: { name: 'Balcón Exterior', icon: 'sparkles' },
+    coffee: { name: 'Cafetera & Infusiones', icon: 'coffee' },
+    room_service: { name: 'Room Service', icon: 'phone' }
+  };
+
+  getAmenityLabel(code: string): string {
+    return this.amenityCatalog[code]?.name || code;
+  }
+
+  getAmenityIcon(code: string): string {
+    return this.amenityCatalog[code]?.icon || 'sparkles';
   }
 
   requestServiceViaWa(service: any) {

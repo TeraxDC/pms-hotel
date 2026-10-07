@@ -11,6 +11,7 @@ import { ExtraChargeCategory } from '../modules/statuses/entities/extra-charge-c
 import { CmsSection } from '../modules/cms/entities/cms-section.entity';
 import { CmsItem } from '../modules/cms/entities/cms-item.entity';
 import { HotelSettings } from '../modules/hotel/entities/hotel-settings.entity';
+import { RoomType } from '../modules/rooms/entities/room-type.entity';
 
 @Injectable()
 export class DatabaseSeederService implements OnApplicationBootstrap {
@@ -37,6 +38,8 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
     private readonly cmsItemRepo: Repository<CmsItem>,
     @InjectRepository(HotelSettings)
     private readonly hotelSettingsRepo: Repository<HotelSettings>,
+    @InjectRepository(RoomType)
+    private readonly roomTypeRepo: Repository<RoomType>,
   ) {}
 
   async onApplicationBootstrap() {
@@ -53,6 +56,7 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
       await this.ensureHotelCurrency();
       await this.seedOffersCmsSection();
       await this.seedAmenitiesCmsSection();
+      await this.ensureRoomTypesAmenities();
       this.logger.log('Tablas parametrizables verificadas exitosamente.');
     } catch (err: any) {
       this.logger.warn(`Error o base de datos no conectada aún: ${err?.message || err}`);
@@ -467,6 +471,26 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
           is_active: true,
         },
       ]);
+    }
+  }
+
+  private async ensureRoomTypesAmenities() {
+    const types = await this.roomTypeRepo.find();
+    for (const t of types) {
+      if (!t.amenities || t.amenities.length === 0) {
+        if (t.code === 'IND-STD') {
+          t.amenities = ['wifi', 'tv', 'shower', 'desk'];
+        } else if (t.code === 'MAT-CONF') {
+          t.amenities = ['wifi', 'tv', 'ac', 'shower', 'frigobar'];
+        } else if (t.code === 'DOB-SUP') {
+          t.amenities = ['wifi', 'tv', 'ac', 'shower'];
+        } else if (t.code === 'SUI-EXEC') {
+          t.amenities = ['wifi', 'tv', 'ac', 'shower', 'frigobar', 'coffee', 'breakfast'];
+        } else {
+          t.amenities = ['wifi', 'tv', 'shower'];
+        }
+        await this.roomTypeRepo.save(t);
+      }
     }
   }
 }

@@ -539,10 +539,15 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                 <button
                   type="button"
                   (click)="toggleItemStatus(item)"
-                  class="text-[11px] font-bold cursor-pointer transition-colors"
-                  [ngClass]="item.is_active ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600'"
+                  class="inline-flex items-center gap-2 px-2.5 py-1 rounded-xl text-xs font-bold cursor-pointer transition-all border"
+                  [ngClass]="item.is_active ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'"
+                  [title]="item.is_active ? 'Haga clic para ocultar en la web' : 'Haga clic para activar en la web'"
                 >
-                  {{ item.is_active ? '● Activo en Web' : '○ Inactivo' }}
+                  <span
+                    class="w-2 h-2 rounded-full transition-transform"
+                    [ngClass]="item.is_active ? 'bg-emerald-500 ring-2 ring-emerald-200' : 'bg-slate-400'"
+                  ></span>
+                  <span>{{ item.is_active ? 'Activo en Web' : 'Inactivo / Oculto' }}</span>
                 </button>
 
                 <div class="flex items-center gap-1">
@@ -1362,13 +1367,23 @@ export class CmsAdminComponent implements OnInit {
   }
 
   toggleItemStatus(item: any) {
-    const updatedStatus = !item.is_active;
+    const previousStatus = item.is_active;
+    const updatedStatus = !previousStatus;
+    
+    // Actualización reactiva inmediata (optimistic update)
+    item.is_active = updatedStatus;
+    this.sections.update((secs) => [...secs]);
+
     this.api.put(`cms/items/${item.id}`, { is_active: updatedStatus }).subscribe({
       next: () => {
-        this.toast.success(`Estado actualizado a ${updatedStatus ? 'Activo' : 'Inactivo'}`);
-        item.is_active = updatedStatus;
+        this.toast.success(`Servicio ${updatedStatus ? 'activado' : 'ocultado'} en la web pública`);
       },
-      error: () => this.toast.error('Error al cambiar estado')
+      error: () => {
+        // En caso de fallo de red o servidor, revertir el estado
+        item.is_active = previousStatus;
+        this.sections.update((secs) => [...secs]);
+        this.toast.error('No se pudo actualizar el estado del servicio');
+      }
     });
   }
 
