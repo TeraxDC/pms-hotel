@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../shared/components/toast/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { FaviconService } from '../../../core/services/favicon.service';
+import { optimizeImageFile } from '../../../core/utils/image-optimizer.util';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 @Component({
@@ -106,13 +108,239 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       <!-- FORM SECTIONS -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+        <!-- CARD: IDENTIDAD VISUAL: LOGOS & FAVICON (FULL WIDTH) -->
+        <div class="md:col-span-2 bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-2xs space-y-6">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                <app-icon name="image" [size]="20"></app-icon>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-slate-900">Identidad Visual: Logos del Hotel & Favicon del Sistema</h3>
+                <p class="text-xs text-slate-400">Suba imágenes desde su dispositivo o ingrese URLs directas. Se reflejarán en la web informativa, folios y en todo el sistema.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- 1. LOGO PARA BARRA DE NAVEGACIÓN (NAV) -->
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <app-icon name="image" [size]="14" class="text-amber-500"></app-icon>
+                    Logo para Barra de Navegación (Nav)
+                  </label>
+                  <span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold">Fondo Claro / Web & PMS</span>
+                </div>
+
+                <!-- Preview Box -->
+                <div class="h-28 rounded-xl border border-slate-200 bg-white flex items-center justify-center p-3 relative overflow-hidden group shadow-2xs">
+                  <img
+                    *ngIf="hotelForm.logo_url"
+                    [src]="hotelForm.logo_url"
+                    alt="Logo Nav"
+                    class="max-h-full max-w-full object-contain"
+                  />
+                  <div *ngIf="!hotelForm.logo_url" class="text-center text-slate-400">
+                    <app-icon name="building" [size]="28" class="mx-auto mb-1 opacity-40"></app-icon>
+                    <span class="text-[11px] block">Sin logo configurado</span>
+                  </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div>
+                  <input
+                    #navLogoInput
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    class="hidden"
+                    (change)="onFileSelected($event, 'logo_url')"
+                  />
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      (click)="navLogoInput.click()"
+                      class="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <app-icon name="camera" [size]="14" class="text-amber-400"></app-icon>
+                      Subir Imagen
+                    </button>
+                    <button
+                      *ngIf="hotelForm.logo_url"
+                      type="button"
+                      (click)="removeImage('logo_url')"
+                      class="p-2 rounded-xl border border-slate-200 hover:bg-red-50 hover:text-red-600 text-slate-400 transition-colors cursor-pointer"
+                      title="Quitar Logo"
+                    >
+                      <app-icon name="trash" [size]="14"></app-icon>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">O ingrese URL directa:</label>
+                  <input
+                    type="url"
+                    [(ngModel)]="hotelForm.logo_url"
+                    placeholder="https://ejemplo.com/logo-nav.png"
+                    class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400">Formatos recomendados: PNG con fondo transparente o SVG.</p>
+            </div>
+
+            <!-- 2. LOGO PARA EL FOOTER -->
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <app-icon name="image" [size]="14" class="text-amber-500"></app-icon>
+                    Logo para Pie de Página (Footer)
+                  </label>
+                  <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-200 font-bold">Fondo Oscuro</span>
+                </div>
+
+                <!-- Preview Box (Dark Background) -->
+                <div class="h-28 rounded-xl border border-slate-800 bg-slate-950 flex items-center justify-center p-3 relative overflow-hidden group shadow-inner">
+                  <img
+                    *ngIf="hotelForm.logo_footer_url || hotelForm.logo_url"
+                    [src]="hotelForm.logo_footer_url || hotelForm.logo_url"
+                    alt="Logo Footer"
+                    class="max-h-full max-w-full object-contain"
+                  />
+                  <div *ngIf="!hotelForm.logo_footer_url && !hotelForm.logo_url" class="text-center text-slate-600">
+                    <app-icon name="building" [size]="28" class="mx-auto mb-1 opacity-40"></app-icon>
+                    <span class="text-[11px] block">Sin logo configurado</span>
+                  </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div>
+                  <input
+                    #footerLogoInput
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    class="hidden"
+                    (change)="onFileSelected($event, 'logo_footer_url')"
+                  />
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      (click)="footerLogoInput.click()"
+                      class="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <app-icon name="camera" [size]="14" class="text-amber-400"></app-icon>
+                      Subir Imagen
+                    </button>
+                    <button
+                      *ngIf="hotelForm.logo_footer_url"
+                      type="button"
+                      (click)="removeImage('logo_footer_url')"
+                      class="p-2 rounded-xl border border-slate-200 hover:bg-red-50 hover:text-red-600 text-slate-400 transition-colors cursor-pointer"
+                      title="Quitar Logo"
+                    >
+                      <app-icon name="trash" [size]="14"></app-icon>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">O ingrese URL directa:</label>
+                  <input
+                    type="url"
+                    [(ngModel)]="hotelForm.logo_footer_url"
+                    placeholder="https://ejemplo.com/logo-blanco.png"
+                    class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400">Idealmente blanco o claro para resaltar sobre el fondo oscuro del footer.</p>
+            </div>
+
+            <!-- 3. FAVICON DEL SISTEMA -->
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <app-icon name="sparkles" [size]="14" class="text-amber-500"></app-icon>
+                    Favicon (Pestaña del Navegador)
+                  </label>
+                  <span class="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 font-bold">Todo el Sistema</span>
+                </div>
+
+                <!-- Preview Box: Browser Tab Simulator -->
+                <div class="h-28 rounded-xl border border-slate-200 bg-slate-200/60 p-2.5 flex flex-col justify-end">
+                  <div class="bg-white rounded-t-lg px-3 py-2 border-t border-x border-slate-200 flex items-center gap-2 shadow-xs max-w-full">
+                    <img
+                      *ngIf="hotelForm.favicon_url"
+                      [src]="hotelForm.favicon_url"
+                      alt="Favicon"
+                      class="w-4 h-4 object-contain shrink-0 rounded-xs"
+                    />
+                    <app-icon *ngIf="!hotelForm.favicon_url" name="building" [size]="14" class="text-slate-400 shrink-0"></app-icon>
+                    <span class="text-[11px] font-semibold text-slate-700 truncate">
+                      {{ hotelForm.hotel_name || 'hotelSJB' }} — Hospedaje
+                    </span>
+                    <app-icon name="x" [size]="10" class="text-slate-400 ml-auto shrink-0"></app-icon>
+                  </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div>
+                  <input
+                    #faviconInput
+                    type="file"
+                    accept="image/png,image/x-icon,image/svg+xml"
+                    class="hidden"
+                    (change)="onFileSelected($event, 'favicon_url')"
+                  />
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      (click)="faviconInput.click()"
+                      class="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <app-icon name="camera" [size]="14" class="text-amber-400"></app-icon>
+                      Subir Favicon
+                    </button>
+                    <button
+                      *ngIf="hotelForm.favicon_url"
+                      type="button"
+                      (click)="removeImage('favicon_url')"
+                      class="p-2 rounded-xl border border-slate-200 hover:bg-red-50 hover:text-red-600 text-slate-400 transition-colors cursor-pointer"
+                      title="Quitar Favicon"
+                    >
+                      <app-icon name="trash" [size]="14"></app-icon>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">O ingrese URL directa:</label>
+                  <input
+                    type="url"
+                    [(ngModel)]="hotelForm.favicon_url"
+                    placeholder="https://ejemplo.com/favicon.ico"
+                    class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400">Formatos: .ico, .png (32x32 o 64x64 px) o SVG.</p>
+            </div>
+
+          </div>
+        </div>
+
         <!-- CARD 1: IDENTIDAD LEGAL Y COMERCIAL -->
         <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-2xs space-y-4">
           <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
             <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
               <app-icon name="file-text" [size]="16"></app-icon>
             </div>
-            <h3 class="text-sm font-bold text-slate-900">1. Identidad Legal & Marca</h3>
+            <h3 class="text-sm font-bold text-slate-900">1. Identidad Legal & Fiscal</h3>
           </div>
 
           <div>
@@ -144,17 +372,6 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
               placeholder="Ej: 20601234567"
               class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-800 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
             />
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1.5">URL del Logo Institucional</label>
-            <input
-              type="url"
-              [(ngModel)]="hotelForm.logo_url"
-              placeholder="https://ejemplo.com/logo.png"
-              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
-            />
-            <span class="text-[11px] text-slate-400 mt-1 block">Visible en comprobantes, folios y portal web.</span>
           </div>
         </div>
 
@@ -388,6 +605,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 export class HotelInfoComponent implements OnInit {
   private api = inject(ApiService);
   private toast = inject(ToastService);
+  private favicon = inject(FaviconService);
   auth = inject(AuthService);
 
   isSaving = signal<boolean>(false);
@@ -403,6 +621,7 @@ export class HotelInfoComponent implements OnInit {
     whatsapp: '',
     email: '',
     logo_url: '',
+    logo_footer_url: '',
     favicon_url: '',
     primary_currency: 'PEN',
     currency_symbol: 'S/.',
@@ -415,6 +634,32 @@ export class HotelInfoComponent implements OnInit {
     longitude: -71.977200,
     map_zoom: 16
   };
+
+  async onFileSelected(event: Event, targetField: 'logo_url' | 'logo_footer_url' | 'favicon_url') {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    try {
+      const isFavicon = targetField === 'favicon_url';
+      const maxW = isFavicon ? 128 : 800;
+      const maxH = isFavicon ? 128 : 400;
+      const dataUrl = await optimizeImageFile(file, maxW, maxH);
+      this.hotelForm[targetField] = dataUrl;
+      if (isFavicon) {
+        this.favicon.setFavicon(dataUrl);
+      }
+      this.toast.success('Imagen cargada correctamente');
+    } catch {
+      this.toast.error('Error al procesar el archivo de imagen');
+    } finally {
+      input.value = '';
+    }
+  }
+
+  removeImage(targetField: 'logo_url' | 'logo_footer_url' | 'favicon_url') {
+    this.hotelForm[targetField] = '';
+    this.toast.info('Imagen removida');
+  }
 
   ngOnInit() {
     this.loadHotelSettings();
@@ -457,6 +702,9 @@ export class HotelInfoComponent implements OnInit {
       next: (saved: any) => {
         this.isSaving.set(false);
         this.toast.success('Información del hospedaje guardada exitosamente.');
+        if (this.hotelForm.favicon_url) {
+          this.favicon.setFavicon(this.hotelForm.favicon_url);
+        }
         if (saved) {
           this.hotelForm = {
             ...this.hotelForm,

@@ -32,10 +32,13 @@ export class HotelSettings {
   @Column({ length: 100, nullable: true })
   email: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'longtext', nullable: true })
   logo_url: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'longtext', nullable: true })
+  logo_footer_url: string;
+
+  @Column({ type: 'longtext', nullable: true })
   favicon_url: string;
 
   @Column({ length: 10, default: 'USD' })

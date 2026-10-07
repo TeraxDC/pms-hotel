@@ -6,6 +6,8 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../shared/components/toast/toast.service';
 import { DialogService } from '../../../shared/components/dialog/dialog.service';
+import { FaviconService } from '../../../core/services/favicon.service';
+import { optimizeImageFile } from '../../../core/utils/image-optimizer.util';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 @Component({
@@ -47,6 +49,16 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
         >
           <app-icon name="image" [size]="15" class="text-amber-400"></app-icon>
           Foto de Portada (Banner Principal)
+        </button>
+
+        <button
+          type="button"
+          (click)="activeTab.set('branding')"
+          [ngClass]="activeTab() === 'branding' ? 'bg-slate-900 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'"
+          class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+        >
+          <app-icon name="image" [size]="15" class="text-amber-400"></app-icon>
+          Logos & Favicon (Identidad)
         </button>
 
         <button
@@ -240,6 +252,248 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-hidden focus:border-amber-500"
                 />
               </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- TAB: LOGOS & FAVICON (IDENTIDAD VISUAL DEL SISTEMA)      -->
+      <!-- ======================================================== -->
+      <div *ngIf="activeTab() === 'branding'" class="space-y-6">
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-2xs p-6 sm:p-8 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <app-icon name="image" [size]="18" class="text-amber-600"></app-icon>
+                Gestión de Logos Institucionales & Favicon del Navegador
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">
+                Configure los logotipos oficiales que se proyectan en la barra de navegación pública, en el pie de página oscuro y el favicon en las pestañas del navegador en todo el sistema.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              (click)="saveBranding()"
+              [disabled]="isSavingBranding"
+              class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-slate-950 text-xs font-black shadow-md shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+            >
+              <app-icon *ngIf="!isSavingBranding" name="check" [size]="16" class="text-slate-950"></app-icon>
+              <span *ngIf="isSavingBranding">Guardando logos...</span>
+              <span *ngIf="!isSavingBranding">Guardar Identidad Visual</span>
+            </button>
+          </div>
+
+          <!-- 3 Columns for Nav Logo, Footer Logo, and Favicon -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- 1. LOGO PRINCIPAL / NAV -->
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <app-icon name="image" [size]="14" class="text-amber-500"></app-icon>
+                    Logo para Barra de Navegación (Nav)
+                  </label>
+                  <span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold">Fondo Claro / Web & PMS</span>
+                </div>
+
+                <!-- Live Preview on Light Background matching Web Nav -->
+                <div class="h-28 rounded-xl border border-slate-200 bg-white flex items-center justify-center p-3 relative overflow-hidden shadow-2xs">
+                  <img
+                    *ngIf="brandingForm.logo_url"
+                    [src]="brandingForm.logo_url"
+                    alt="Logo Nav"
+                    class="max-h-full max-w-full object-contain"
+                  />
+                  <div *ngIf="!brandingForm.logo_url" class="text-center text-slate-400">
+                    <app-icon name="building" [size]="28" class="mx-auto mb-1 opacity-40"></app-icon>
+                    <span class="text-[11px] block">Sin logo configurado</span>
+                  </div>
+                </div>
+
+                <!-- Upload and Delete Controls -->
+                <div>
+                  <input
+                    #cmsNavLogoInput
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    class="hidden"
+                    (change)="onCmsFileSelected($event, 'logo_url')"
+                  />
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      (click)="cmsNavLogoInput.click()"
+                      class="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <app-icon name="camera" [size]="14" class="text-amber-400"></app-icon>
+                      Subir Imagen
+                    </button>
+                    <button
+                      *ngIf="brandingForm.logo_url"
+                      type="button"
+                      (click)="brandingForm.logo_url = ''"
+                      class="p-2 rounded-xl border border-slate-200 hover:bg-red-50 hover:text-red-600 text-slate-400 transition-colors cursor-pointer"
+                      title="Quitar Logo"
+                    >
+                      <app-icon name="trash" [size]="14"></app-icon>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">O ingrese URL directa:</label>
+                  <input
+                    type="url"
+                    [(ngModel)]="brandingForm.logo_url"
+                    placeholder="https://ejemplo.com/logo-nav.png"
+                    class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400">Recomendado: PNG con fondo transparente o SVG.</p>
+            </div>
+
+            <!-- 2. LOGO PARA EL FOOTER -->
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <app-icon name="image" [size]="14" class="text-amber-500"></app-icon>
+                    Logo para Pie de Página (Footer)
+                  </label>
+                  <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-200 font-bold">Fondo Oscuro</span>
+                </div>
+
+                <!-- Live Preview on Dark Background matching Web Footer -->
+                <div class="h-28 rounded-xl border border-slate-800 bg-slate-950 flex items-center justify-center p-3 relative overflow-hidden shadow-inner">
+                  <img
+                    *ngIf="brandingForm.logo_footer_url || brandingForm.logo_url"
+                    [src]="brandingForm.logo_footer_url || brandingForm.logo_url"
+                    alt="Logo Footer"
+                    class="max-h-full max-w-full object-contain"
+                  />
+                  <div *ngIf="!brandingForm.logo_footer_url && !brandingForm.logo_url" class="text-center text-slate-600">
+                    <app-icon name="building" [size]="28" class="mx-auto mb-1 opacity-40"></app-icon>
+                    <span class="text-[11px] block">Sin logo configurado</span>
+                  </div>
+                </div>
+
+                <!-- Upload and Delete Controls -->
+                <div>
+                  <input
+                    #cmsFooterLogoInput
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    class="hidden"
+                    (change)="onCmsFileSelected($event, 'logo_footer_url')"
+                  />
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      (click)="cmsFooterLogoInput.click()"
+                      class="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <app-icon name="camera" [size]="14" class="text-amber-400"></app-icon>
+                      Subir Imagen
+                    </button>
+                    <button
+                      *ngIf="brandingForm.logo_footer_url"
+                      type="button"
+                      (click)="brandingForm.logo_footer_url = ''"
+                      class="p-2 rounded-xl border border-slate-200 hover:bg-red-50 hover:text-red-600 text-slate-400 transition-colors cursor-pointer"
+                      title="Quitar Logo"
+                    >
+                      <app-icon name="trash" [size]="14"></app-icon>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">O ingrese URL directa:</label>
+                  <input
+                    type="url"
+                    [(ngModel)]="brandingForm.logo_footer_url"
+                    placeholder="https://ejemplo.com/logo-blanco.png"
+                    class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400">Recomendado: Versión en blanco o clara para fondo oscuro.</p>
+            </div>
+
+            <!-- 3. FAVICON DEL SISTEMA -->
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <app-icon name="sparkles" [size]="14" class="text-amber-500"></app-icon>
+                    Favicon del Navegador (Pestaña)
+                  </label>
+                  <span class="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 font-bold">Todo el Sistema</span>
+                </div>
+
+                <!-- Live Browser Tab Simulator -->
+                <div class="h-28 rounded-xl border border-slate-200 bg-slate-200/60 p-2.5 flex flex-col justify-end">
+                  <div class="bg-white rounded-t-lg px-3 py-2 border-t border-x border-slate-200 flex items-center gap-2 shadow-xs max-w-full">
+                    <img
+                      *ngIf="brandingForm.favicon_url"
+                      [src]="brandingForm.favicon_url"
+                      alt="Favicon"
+                      class="w-4 h-4 object-contain shrink-0 rounded-xs"
+                    />
+                    <app-icon *ngIf="!brandingForm.favicon_url" name="building" [size]="14" class="text-slate-400 shrink-0"></app-icon>
+                    <span class="text-[11px] font-semibold text-slate-700 truncate">
+                      hotelSJB — Hospedaje
+                    </span>
+                    <app-icon name="x" [size]="10" class="text-slate-400 ml-auto shrink-0"></app-icon>
+                  </div>
+                </div>
+
+                <!-- Upload and Delete Controls -->
+                <div>
+                  <input
+                    #cmsFaviconInput
+                    type="file"
+                    accept="image/png,image/x-icon,image/svg+xml"
+                    class="hidden"
+                    (change)="onCmsFileSelected($event, 'favicon_url')"
+                  />
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      (click)="cmsFaviconInput.click()"
+                      class="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <app-icon name="camera" [size]="14" class="text-amber-400"></app-icon>
+                      Subir Favicon
+                    </button>
+                    <button
+                      *ngIf="brandingForm.favicon_url"
+                      type="button"
+                      (click)="brandingForm.favicon_url = ''"
+                      class="p-2 rounded-xl border border-slate-200 hover:bg-red-50 hover:text-red-600 text-slate-400 transition-colors cursor-pointer"
+                      title="Quitar Favicon"
+                    >
+                      <app-icon name="trash" [size]="14"></app-icon>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">O ingrese URL directa:</label>
+                  <input
+                    type="url"
+                    [(ngModel)]="brandingForm.favicon_url"
+                    placeholder="https://ejemplo.com/favicon.ico"
+                    class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400">Formatos: .ico, .png (32x32 o 64x64 px) o SVG.</p>
             </div>
 
           </div>
@@ -1213,11 +1467,20 @@ export class CmsAdminComponent implements OnInit {
   private toast = inject(ToastService);
   private dialog = inject(DialogService);
   private sanitizer = inject(DomSanitizer);
+  private favicon = inject(FaviconService);
 
-  activeTab = signal<'cover' | 'rooms' | 'offers' | 'services' | 'location' | 'sections'>('cover');
+  activeTab = signal<'cover' | 'branding' | 'rooms' | 'offers' | 'services' | 'location' | 'sections'>('cover');
 
   sections = signal<any[]>([]);
   roomTypes = signal<any[]>([]);
+
+  // Branding (Logos & Favicon) state
+  isSavingBranding = false;
+  brandingForm = {
+    logo_url: '',
+    logo_footer_url: '',
+    favicon_url: ''
+  };
 
   // Location and Map state
   isSavingLocation = false;
@@ -1331,11 +1594,60 @@ export class CmsAdminComponent implements OnInit {
           if (settings.address) {
             this.locationForm.address = settings.address;
           }
+
+          this.brandingForm.logo_url = settings.logo_url || '';
+          this.brandingForm.logo_footer_url = settings.logo_footer_url || '';
+          this.brandingForm.favicon_url = settings.favicon_url || '';
+          if (settings.favicon_url) {
+            this.favicon.setFavicon(settings.favicon_url);
+          }
         }
         this.updatePreviewUrl();
       },
       error: () => {
         this.updatePreviewUrl();
+      }
+    });
+  }
+
+  async onCmsFileSelected(event: Event, field: 'logo_url' | 'logo_footer_url' | 'favicon_url') {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    try {
+      const isFavicon = field === 'favicon_url';
+      const maxW = isFavicon ? 128 : 800;
+      const maxH = isFavicon ? 128 : 400;
+      const dataUrl = await optimizeImageFile(file, maxW, maxH);
+      this.brandingForm[field] = dataUrl;
+      if (isFavicon) {
+        this.favicon.setFavicon(dataUrl);
+      }
+      this.toast.success('Imagen cargada correctamente');
+    } catch {
+      this.toast.error('Error al procesar el archivo de imagen');
+    } finally {
+      input.value = '';
+    }
+  }
+
+  saveBranding() {
+    this.isSavingBranding = true;
+    this.api.put('hotel/settings', {
+      logo_url: this.brandingForm.logo_url,
+      logo_footer_url: this.brandingForm.logo_footer_url,
+      favicon_url: this.brandingForm.favicon_url
+    }).subscribe({
+      next: () => {
+        this.isSavingBranding = false;
+        if (this.brandingForm.favicon_url) {
+          this.favicon.setFavicon(this.brandingForm.favicon_url);
+        }
+        this.toast.success('Identidad visual y logotipos guardados exitosamente');
+      },
+      error: () => {
+        this.isSavingBranding = false;
+        this.toast.error('Error al guardar la identidad visual');
       }
     });
   }

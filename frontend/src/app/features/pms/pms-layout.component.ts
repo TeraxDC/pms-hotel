@@ -1,7 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { ApiService } from '../../core/services/api.service';
+import { FaviconService } from '../../core/services/favicon.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
 @Component({
@@ -15,12 +17,21 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
       <aside class="hidden md:flex flex-col w-64 bg-slate-900 text-slate-300 border-r border-slate-800 shrink-0">
         <!-- Brand Header -->
         <div class="h-20 flex items-center gap-3 px-6 border-b border-slate-800">
-          <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center font-bold">
+          <img
+            *ngIf="hotelSettings()?.logo_url"
+            [src]="hotelSettings().logo_url"
+            [alt]="hotelSettings()?.hotel_name || 'Logo'"
+            class="h-10 max-w-[120px] object-contain rounded-lg"
+          />
+          <div
+            *ngIf="!hotelSettings()?.logo_url"
+            class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center font-bold"
+          >
             <app-icon name="building" [size]="20"></app-icon>
           </div>
-          <div>
-            <span class="text-base font-extrabold text-white tracking-tight block">hotelSJB</span>
-            <span class="text-[10px] uppercase tracking-widest text-slate-400 font-semibold block">Suite Hotelera</span>
+          <div class="overflow-hidden">
+            <span class="text-base font-extrabold text-white tracking-tight block truncate">{{ hotelSettings()?.hotel_name || 'hotelSJB' }}</span>
+            <span class="text-[10px] uppercase tracking-widest text-slate-400 font-semibold block truncate">{{ hotelSettings()?.trade_name || 'Suite Hotelera' }}</span>
           </div>
         </div>
 
@@ -267,14 +278,33 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
     </div>
   `
 })
-export class PmsLayoutComponent {
+export class PmsLayoutComponent implements OnInit {
   auth = inject(AuthService);
+  private api = inject(ApiService);
+  private favicon = inject(FaviconService);
+
+  hotelSettings = signal<any>(null);
+
   todayDate: string = new Intl.DateTimeFormat('es-ES', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   }).format(new Date());
+
+  ngOnInit() {
+    this.api.get<any>('onboarding/status').subscribe({
+      next: (res) => {
+        if (res.hotel) {
+          this.hotelSettings.set(res.hotel);
+          if (res.hotel.favicon_url) {
+            this.favicon.setFavicon(res.hotel.favicon_url);
+          }
+        }
+      },
+      error: () => {}
+    });
+  }
 
   getRoleIcon(role?: string): string {
     switch (role) {

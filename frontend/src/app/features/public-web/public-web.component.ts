@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ApiService } from '../../core/services/api.service';
+import { FaviconService } from '../../core/services/favicon.service';
 import { ToastService } from '../../shared/components/toast/toast.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
@@ -54,7 +55,16 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <!-- Logo Brand -->
           <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-slate-900 text-amber-400 flex items-center justify-center font-bold shadow-md shadow-slate-900/10 border border-slate-800">
+            <img
+              *ngIf="hotelInfo()?.logo_url"
+              [src]="hotelInfo().logo_url"
+              [alt]="hotelInfo()?.hotel_name || 'Logo Hotel'"
+              class="h-11 max-w-[170px] object-contain rounded-xl"
+            />
+            <div
+              *ngIf="!hotelInfo()?.logo_url"
+              class="w-11 h-11 rounded-2xl bg-slate-900 text-amber-400 flex items-center justify-center font-bold shadow-md shadow-slate-900/10 border border-slate-800"
+            >
               <app-icon name="building" [size]="22"></app-icon>
             </div>
             <div>
@@ -62,7 +72,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
                 {{ hotelInfo()?.hotel_name || 'hotelSJB' }}
               </span>
               <span class="text-[10px] uppercase tracking-widest text-amber-600 font-extrabold block mt-1">
-                Hospedaje & Suites
+                {{ hotelInfo()?.trade_name || 'Hospedaje & Suites' }}
               </span>
             </div>
           </div>
@@ -622,9 +632,22 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
       <footer id="contacto" class="bg-slate-950 text-slate-400 py-16 border-t border-slate-800/80 text-xs mt-auto">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
           <div>
-            <div class="flex items-center gap-2.5 text-white font-black text-lg mb-3">
-              <app-icon name="building" [size]="22" class="text-amber-500"></app-icon>
-              {{ hotelInfo()?.hotel_name || 'hotelSJB' }}
+            <div class="flex items-center gap-3 mb-3">
+              <img
+                *ngIf="hotelInfo()?.logo_footer_url || hotelInfo()?.logo_url"
+                [src]="hotelInfo()?.logo_footer_url || hotelInfo()?.logo_url"
+                [alt]="hotelInfo()?.hotel_name || 'Logo Hotel'"
+                class="h-10 max-w-[160px] object-contain rounded-lg"
+              />
+              <div
+                *ngIf="!hotelInfo()?.logo_footer_url && !hotelInfo()?.logo_url"
+                class="w-9 h-9 rounded-xl bg-slate-900 text-amber-500 flex items-center justify-center font-bold border border-slate-800"
+              >
+                <app-icon name="building" [size]="20"></app-icon>
+              </div>
+              <span class="text-white font-black text-lg">
+                {{ hotelInfo()?.hotel_name || 'hotelSJB' }}
+              </span>
             </div>
             <p class="text-slate-400 leading-relaxed text-xs">
               Hospedaje turístico y corporativo de primer nivel. Gestión hotelera profesional mediante la suite de software PMS integral.
@@ -754,6 +777,7 @@ export class PublicWebComponent implements OnInit {
   private api = inject(ApiService);
   private toast = inject(ToastService);
   private sanitizer = inject(DomSanitizer);
+  private favicon = inject(FaviconService);
 
   hotelInfo = signal<any>(null);
   roomTypes = signal<any[]>([]);
@@ -834,6 +858,9 @@ export class PublicWebComponent implements OnInit {
       next: (res) => {
         if (res.hotel) {
           this.hotelInfo.set(res.hotel);
+          if (res.hotel.favicon_url) {
+            this.favicon.setFavicon(res.hotel.favicon_url);
+          }
         }
       }
     });

@@ -42,6 +42,8 @@ export class OnboardingService {
         hotel_name: hotel.hotel_name,
         trade_name: hotel.trade_name,
         logo_url: hotel.logo_url,
+        logo_footer_url: hotel.logo_footer_url,
+        favicon_url: hotel.favicon_url,
         whatsapp: hotel.whatsapp,
         phone: hotel.phone,
         email: hotel.email,

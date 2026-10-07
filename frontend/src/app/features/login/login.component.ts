@@ -1,8 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { ApiService } from '../../core/services/api.service';
+import { FaviconService } from '../../core/services/favicon.service';
 import { ToastService } from '../../shared/components/toast/toast.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { CustomCheckboxComponent } from '../../shared/components/custom-checkbox/custom-checkbox.component';
@@ -18,14 +20,23 @@ import { CustomCheckboxComponent } from '../../shared/components/custom-checkbox
       <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <!-- Logo -->
         <div class="text-center mb-8">
-          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 mb-4 shadow-lg shadow-amber-500/10">
+          <img
+            *ngIf="hotelInfo()?.logo_url"
+            [src]="hotelInfo().logo_url"
+            [alt]="hotelInfo()?.hotel_name || 'Logo'"
+            class="h-16 max-w-[200px] object-contain mx-auto mb-4 rounded-xl"
+          />
+          <div
+            *ngIf="!hotelInfo()?.logo_url"
+            class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 mb-4 shadow-lg shadow-amber-500/10"
+          >
             <app-icon name="building" [size]="28"></app-icon>
           </div>
           <h2 class="text-2xl font-black text-white tracking-tight">
             Acceso al Sistema PMS
           </h2>
           <p class="mt-2 text-xs text-slate-400">
-            Gestión hotelera, recepción y operaciones de alojamiento
+            {{ hotelInfo()?.trade_name || hotelInfo()?.hotel_name || 'Gestión hotelera, recepción y operaciones de alojamiento' }}
           </p>
         </div>
 
@@ -94,15 +105,32 @@ import { CustomCheckboxComponent } from '../../shared/components/custom-checkbox
     </div>
   `
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private auth = inject(AuthService);
   private toast = inject(ToastService);
   private router = inject(Router);
+  private api = inject(ApiService);
+  private favicon = inject(FaviconService);
 
+  hotelInfo = signal<any>(null);
   email: string = 'admin@hotelsjb.com';
   password: string = '';
   rememberMe: boolean = true;
   loading = signal<boolean>(false);
+
+  ngOnInit() {
+    this.api.get<any>('onboarding/status').subscribe({
+      next: (res) => {
+        if (res.hotel) {
+          this.hotelInfo.set(res.hotel);
+          if (res.hotel.favicon_url) {
+            this.favicon.setFavicon(res.hotel.favicon_url);
+          }
+        }
+      },
+      error: () => {}
+    });
+  }
 
   onSubmit() {
     if (!this.email.trim() || !this.password) {

@@ -66,6 +66,7 @@ export class HotelService {
     if (data.whatsapp !== undefined) settings.whatsapp = data.whatsapp;
     if (data.email !== undefined) settings.email = data.email;
     if (data.logo_url !== undefined) settings.logo_url = data.logo_url;
+    if (data.logo_footer_url !== undefined) settings.logo_footer_url = data.logo_footer_url;
     if (data.favicon_url !== undefined) settings.favicon_url = data.favicon_url;
     if (data.primary_currency !== undefined) settings.primary_currency = data.primary_currency;
     if (data.currency_symbol !== undefined) settings.currency_symbol = data.currency_symbol;
