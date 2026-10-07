@@ -46,6 +46,7 @@ export const routes: Routes = [
       { path: 'users', component: UsersComponent },
       { path: 'statuses', component: StatusesManagerComponent },
       { path: 'cms', component: CmsAdminComponent },
+      { path: 'reports', loadComponent: () => import('./features/pms/reports/reports.component').then(m => m.ReportsComponent) },
     ]
   },
   // Fallback

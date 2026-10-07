@@ -233,6 +233,35 @@ import { CommonModule } from '@angular/common';
           <line x1="17" x2="23" y1="16" y2="16" />
         </ng-container>
 
+        <!-- Bar Chart / Reports -->
+        <ng-container *ngSwitchCase="'bar-chart'">
+          <line x1="12" x2="12" y1="20" y2="10" />
+          <line x1="18" x2="18" y1="20" y2="4" />
+          <line x1="6" x2="6" y1="20" y2="16" />
+        </ng-container>
+
+        <!-- Download -->
+        <ng-container *ngSwitchCase="'download'">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" x2="12" y1="15" y2="3" />
+        </ng-container>
+
+        <!-- Printer -->
+        <ng-container *ngSwitchCase="'printer'">
+          <polyline points="6 9 6 2 18 2 18 9" />
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <rect width="12" height="8" x="6" y="14" />
+        </ng-container>
+
+        <!-- File Text -->
+        <ng-container *ngSwitchCase="'file-text'">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" x2="8" y1="13" y2="13" />
+          <line x1="16" x2="8" y1="17" y2="17" />
+        </ng-container>
+
         <!-- Fallback Default Icon -->
         <ng-container *ngSwitchDefault>
           <circle cx="12" cy="12" r="10" />
