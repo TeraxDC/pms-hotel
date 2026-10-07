@@ -143,7 +143,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               ></app-status-badge>
 
               <span class="text-[11px] font-bold text-slate-800">
-                \${{ room.room_type?.base_price }}
+                S/. {{ room.room_type?.base_price }}
               </span>
             </div>
           </div>
@@ -167,7 +167,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 <h3 class="text-base font-bold text-slate-900">
                   Habitación {{ selectedRoom()!.room_number }} — {{ selectedRoom()!.room_type?.name }}
                 </h3>
-                <span class="text-xs text-slate-500">Piso {{ selectedRoom()!.floor }} • Tarifa: \${{ selectedRoom()!.room_type?.base_price }} por noche</span>
+                <span class="text-xs text-slate-500">Piso {{ selectedRoom()!.floor }} • Tarifa: S/. {{ selectedRoom()!.room_type?.base_price }} por noche</span>
               </div>
             </div>
 
@@ -258,7 +258,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 Entrada: {{ stay.check_in_date }} • Salida prevista: {{ stay.check_out_date }}
               </div>
               <div class="font-bold text-slate-800 pt-1">
-                Total: \${{ stay.total_amount }} | Saldo: \${{ getPendingBalance(stay) }}
+                Total: S/. {{ stay.total_amount }} | Saldo: S/. {{ getPendingBalance(stay) }}
               </div>
 
               <div class="flex flex-wrap gap-2 pt-2">

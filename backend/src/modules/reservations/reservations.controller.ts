@@ -57,4 +57,12 @@ export class ReservationsController {
   addPayment(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
     return this.reservationsService.addPayment(id, body);
   }
+
+  @Post(':id/discount')
+  applyDiscount(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { discount_amount: number; reason?: string },
+  ) {
+    return this.reservationsService.applyDiscount(id, body);
+  }
 }

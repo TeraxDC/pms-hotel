@@ -72,6 +72,7 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
           <div class="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider text-slate-600">
             <a href="#inicio" class="hover:text-amber-600 transition-colors">Inicio</a>
             <a href="#habitaciones" class="hover:text-amber-600 transition-colors">Habitaciones</a>
+            <a href="#ofertas" class="hover:text-amber-600 transition-colors">Ofertas & Promos</a>
             <a href="#servicios" class="hover:text-amber-600 transition-colors">Servicios</a>
             <a href="#app" class="hover:text-amber-600 transition-colors">App Móvil</a>
             <a href="#contacto" class="hover:text-amber-600 transition-colors">Ubicación</a>
@@ -179,7 +180,7 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
               <div class="flex items-center gap-2">
                 <app-icon name="clock" [size]="16" class="text-slate-400"></app-icon>
                 <span>Estadía estimada: <strong>{{ quotePreviewNights }} noche(s)</strong></span>
-                <span *ngIf="quotePreviewTotal > 0">• Total aproximado: <strong class="text-slate-900 text-sm">\${{ quotePreviewTotal }}</strong></span>
+                <span *ngIf="quotePreviewTotal > 0">• Total aproximado: <strong class="text-slate-900 text-sm">S/. {{ quotePreviewTotal }}</strong></span>
               </div>
               <span class="text-[11px] text-slate-400">Atención inmediata en menos de 5 minutos por WhatsApp</span>
             </div>
@@ -215,7 +216,7 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
                 
                 <!-- Price Badge -->
                 <div class="absolute top-4 right-4 bg-slate-950/90 backdrop-blur-md text-white px-3.5 py-1.5 rounded-xl font-black text-xs shadow-lg border border-slate-800">
-                  <span class="text-amber-400 font-mono text-sm">\${{ type.base_price }}</span> / noche
+                  <span class="text-amber-400 font-mono text-sm">S/. {{ type.base_price }}</span> / noche
                 </div>
 
                 <!-- Capacity Tag -->
@@ -269,6 +270,65 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
                     Reservar Ahora
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- OFFERS AND PROMOTIONS SECTION -->
+      <section id="ofertas" *ngIf="offers().length > 0" class="py-20 bg-amber-500/5 border-y border-amber-500/10 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          
+          <div class="text-center max-w-2xl mx-auto mb-14">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-900 border border-amber-300 text-xs font-black uppercase tracking-wider mb-2">
+              <app-icon name="sparkles" [size]="14" class="text-amber-600"></app-icon>
+              Beneficios Exclusivos Web
+            </span>
+            <h3 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              Ofertas Especiales & Promociones
+            </h3>
+            <p class="mt-3 text-sm text-slate-600">
+              Aproveche tarifas con descuento y beneficios exclusivos reservando directamente a través de nuestro canal oficial.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              *ngFor="let offer of offers()"
+              class="bg-white rounded-3xl border border-amber-200/80 p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group"
+            >
+              <div>
+                <div class="flex items-start justify-between gap-3 mb-4">
+                  <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-700 flex items-center justify-center font-bold">
+                    <app-icon [name]="offer.icon_name || 'sparkles'" [size]="22"></app-icon>
+                  </div>
+                  <span *ngIf="offer.link_url" class="px-3 py-1 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 font-mono font-black text-xs tracking-wider">
+                    {{ offer.link_url }}
+                  </span>
+                </div>
+
+                <h4 class="text-base font-black text-slate-900 mb-2 group-hover:text-amber-700 transition-colors">
+                  {{ offer.title }}
+                </h4>
+
+                <p class="text-xs text-slate-600 leading-relaxed mb-6">
+                  {{ offer.content }}
+                </p>
+              </div>
+
+              <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Descuento Directo</span>
+                
+                <button
+                  type="button"
+                  (click)="claimOffer(offer)"
+                  class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <app-icon name="check-circle" [size]="14" class="text-amber-400"></app-icon>
+                  Aprovechar Oferta
+                </button>
               </div>
             </div>
           </div>
@@ -408,6 +468,8 @@ export class PublicWebComponent implements OnInit {
   hotelInfo = signal<any>(null);
   roomTypes = signal<any[]>([]);
 
+  offers = signal<any[]>([]);
+
   searchDates = {
     checkIn: new Date().toISOString().substring(0, 10),
     checkOut: new Date(Date.now() + 86400000).toISOString().substring(0, 10),
@@ -422,6 +484,7 @@ export class PublicWebComponent implements OnInit {
   ngOnInit() {
     this.loadHotelData();
     this.loadRoomTypes();
+    this.loadCmsOffers();
   }
 
   loadHotelData() {
@@ -429,6 +492,17 @@ export class PublicWebComponent implements OnInit {
       next: (res) => {
         if (res.hotel) {
           this.hotelInfo.set(res.hotel);
+        }
+      }
+    });
+  }
+
+  loadCmsOffers() {
+    this.api.get<any[]>('cms/public').subscribe({
+      next: (sections) => {
+        const offersSec = sections.find((s) => s.section_key === 'offers');
+        if (offersSec && offersSec.items) {
+          this.offers.set(offersSec.items.filter((i: any) => i.is_active));
         }
       }
     });
@@ -442,7 +516,7 @@ export class PublicWebComponent implements OnInit {
           { value: null, label: 'Todas las Categorías' },
           ...types.map((t) => ({
             value: t.id,
-            label: `${t.name} (\${${t.base_price}}/noche)`,
+            label: `${t.name} (S/. ${t.base_price}/noche)`,
             sublabel: `Capacidad: ${t.max_capacity} pers.`
           }))
         ];
@@ -480,12 +554,20 @@ export class PublicWebComponent implements OnInit {
     window.open(`https://wa.me/${cleanWa}?text=${msg}`, '_blank');
   }
 
+  claimOffer(offer: any) {
+    const wa = this.hotelInfo()?.whatsapp || '+51984123456';
+    const cleanWa = wa.replace(/[^0-9]/g, '');
+    const promoCode = offer.link_url ? ` con el cupón ${offer.link_url}` : '';
+    const msg = encodeURIComponent(`Hola, deseo aprovechar la promoción "${offer.title}"${promoCode}. ¿Tienen disponibilidad?`);
+    window.open(`https://wa.me/${cleanWa}?text=${msg}`, '_blank');
+  }
+
   consultBooking() {
     const wa = this.hotelInfo()?.whatsapp || '+51984123456';
     const cleanWa = wa.replace(/[^0-9]/g, '');
     const selectedType = this.roomTypes().find((t) => t.id === this.searchDates.selectedTypeId);
     const typeLabel = selectedType ? selectedType.name : 'Cualquier habitación disponible';
-    const priceInfo = this.quotePreviewTotal > 0 ? `\n- Total Estimado: \$${this.quotePreviewTotal} (${this.quotePreviewNights} noches)` : '';
+    const priceInfo = this.quotePreviewTotal > 0 ? `\n- Total Estimado: S/. ${this.quotePreviewTotal} (${this.quotePreviewNights} noches)` : '';
 
     const msg = encodeURIComponent(
       `Hola ${this.hotelInfo()?.hotel_name || 'hotelSJB'}, deseo consultar disponibilidad para:\n` +
@@ -501,7 +583,7 @@ export class PublicWebComponent implements OnInit {
     const wa = this.hotelInfo()?.whatsapp || '+51984123456';
     const cleanWa = wa.replace(/[^0-9]/g, '');
     const msg = encodeURIComponent(
-      `Hola, deseo reservar la habitación: ${type.name} (\${${type.base_price}}/noche). ¿Tienen disponibilidad?`
+      `Hola, deseo reservar la habitación: ${type.name} (S/. ${type.base_price}/noche). ¿Tienen disponibilidad?`
     );
     window.open(`https://wa.me/${cleanWa}?text=${msg}`, '_blank');
   }

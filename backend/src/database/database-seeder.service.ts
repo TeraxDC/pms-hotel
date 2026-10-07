@@ -9,6 +9,8 @@ import { PaymentMethod } from '../modules/statuses/entities/payment-method.entit
 import { DocumentType } from '../modules/statuses/entities/document-type.entity';
 import { ExtraChargeCategory } from '../modules/statuses/entities/extra-charge-category.entity';
 import { CmsSection } from '../modules/cms/entities/cms-section.entity';
+import { CmsItem } from '../modules/cms/entities/cms-item.entity';
+import { HotelSettings } from '../modules/hotel/entities/hotel-settings.entity';
 
 @Injectable()
 export class DatabaseSeederService implements OnApplicationBootstrap {
@@ -31,6 +33,10 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
     private readonly extraCatRepo: Repository<ExtraChargeCategory>,
     @InjectRepository(CmsSection)
     private readonly cmsSectionRepo: Repository<CmsSection>,
+    @InjectRepository(CmsItem)
+    private readonly cmsItemRepo: Repository<CmsItem>,
+    @InjectRepository(HotelSettings)
+    private readonly hotelSettingsRepo: Repository<HotelSettings>,
   ) {}
 
   async onApplicationBootstrap() {
@@ -44,6 +50,8 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
       await this.seedDocumentTypes();
       await this.seedExtraCategories();
       await this.seedCmsSections();
+      await this.ensureHotelCurrency();
+      await this.seedOffersCmsSection();
       this.logger.log('Tablas parametrizables verificadas exitosamente.');
     } catch (err: any) {
       this.logger.warn(`Error o base de datos no conectada aún: ${err?.message || err}`);
@@ -326,6 +334,63 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
           section_key: 'contact',
           title: 'Contáctanos y Ubicación',
           subtitle: 'Estamos a tu disposición las 24 horas del día.',
+        },
+      ]);
+    }
+  }
+
+  private async ensureHotelCurrency() {
+    const hotel = await this.hotelSettingsRepo.findOne({ where: { id: 1 } });
+    if (hotel) {
+      if (hotel.currency_symbol !== 'S/.' || hotel.primary_currency !== 'PEN') {
+        hotel.currency_symbol = 'S/.';
+        hotel.primary_currency = 'PEN';
+        await this.hotelSettingsRepo.save(hotel);
+      }
+    }
+  }
+
+  private async seedOffersCmsSection() {
+    let offersSec = await this.cmsSectionRepo.findOne({ where: { section_key: 'offers' } });
+    if (!offersSec) {
+      offersSec = this.cmsSectionRepo.create({
+        section_key: 'offers',
+        title: 'Ofertas Especiales & Promociones',
+        subtitle: 'Aprovecha descuentos exclusivos reservando directamente a través de nuestra web.',
+        is_active: true,
+      });
+      offersSec = await this.cmsSectionRepo.save(offersSec);
+    }
+
+    const itemsCount = await this.cmsItemRepo.count({ where: { section_id: offersSec.id } });
+    if (itemsCount === 0) {
+      await this.cmsItemRepo.save([
+        {
+          section_id: offersSec.id,
+          title: 'Escapada Fin de Semana - 20% OFF',
+          content: 'Hospédate 2 noches o más de viernes a domingo y obtén 20% de descuento en habitaciones matrimoniales.',
+          icon_name: 'sparkles',
+          link_url: 'PROMO-FINDE',
+          display_order: 1,
+          is_active: true,
+        },
+        {
+          section_id: offersSec.id,
+          title: 'Tarifa Corporativa Ejecutiva',
+          content: 'Descuento especial de S/. 20 por noche para empresas y profesionales en viaje de trabajo.',
+          icon_name: 'shield',
+          link_url: 'PROMO-CORP',
+          display_order: 2,
+          is_active: true,
+        },
+        {
+          section_id: offersSec.id,
+          title: 'Reserva Anticipada - Ahorra S/. 25',
+          content: 'Planifica tu estadía con al menos 7 días de anticipación y asegura el mejor precio garantizado.',
+          icon_name: 'calendar',
+          link_url: 'PROMO-ANTICIPADA',
+          display_order: 3,
+          is_active: true,
         },
       ]);
     }

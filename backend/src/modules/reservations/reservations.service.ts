@@ -86,6 +86,7 @@ export class ReservationsService {
     total_guests: number;
     notes?: string;
     is_walk_in?: boolean;
+    discount_amount?: number;
     payment?: {
       amount: number;
       payment_method_id: number;
@@ -168,6 +169,8 @@ export class ReservationsService {
       resRooms.push(rr);
     }
 
+    const discount = Number(data.discount_amount || 0);
+
     const reservation = this.reservationRepo.create({
       reservation_code: code,
       main_guest_id: guest.id,
@@ -177,8 +180,8 @@ export class ReservationsService {
       total_guests: data.total_guests || 1,
       total_accommodation: totalAccommodation,
       total_extras: 0,
-      total_discount: 0,
-      total_amount: totalAccommodation,
+      total_discount: discount,
+      total_amount: Math.max(0, totalAccommodation - discount),
       paid_amount: 0,
       notes: data.notes,
       rooms: resRooms,
@@ -308,7 +311,7 @@ export class ReservationsService {
     const pendingBalance = Math.max(0, Number(updatedRes.total_amount) - Number(updatedRes.paid_amount));
     if (pendingBalance > 0 && !data?.force) {
       throw new BadRequestException(
-        `La reserva cuenta con un saldo pendiente de \$${pendingBalance}. Debe registrar el cobro o confirmar la salida con autorización.`,
+        `La reserva cuenta con un saldo pendiente de S/. ${pendingBalance.toFixed(2)}. Debe registrar el cobro o confirmar la salida con autorización.`,
       );
     }
 
@@ -459,5 +462,17 @@ export class ReservationsService {
       })
       .take(10)
       .getMany();
+  }
+
+  async applyDiscount(id: number, data: { discount_amount: number; reason?: string }) {
+    const res = await this.findOne(id);
+    const discount = Number(data.discount_amount || 0);
+    const newTotal = Math.max(0, Number(res.total_accommodation || 0) + Number(res.total_extras || 0) - discount);
+    await this.reservationRepo.update(id, {
+      total_discount: discount,
+      total_amount: newTotal,
+      notes: data.reason ? (res.notes ? `${res.notes} | Descuento: ${data.reason}` : `Descuento: ${data.reason}`) : res.notes,
+    });
+    return this.findOne(id);
   }
 }

@@ -41,8 +41,36 @@ export class RoomsService {
     return this.roomTypeRepo.save(type);
   }
 
+  async updateRoomType(id: number, data: Partial<RoomType>) {
+    const type = await this.roomTypeRepo.findOne({ where: { id } });
+    if (!type) throw new NotFoundException('Tipo de habitación no encontrado');
+    Object.assign(type, data);
+    return this.roomTypeRepo.save(type);
+  }
+
+  async deleteRoomType(id: number) {
+    const type = await this.roomTypeRepo.findOne({ where: { id } });
+    if (!type) throw new NotFoundException('Tipo de habitación no encontrado');
+    type.is_active = false;
+    return this.roomTypeRepo.save(type);
+  }
+
   async createRoom(data: Partial<Room>) {
     const room = this.roomRepo.create(data);
+    return this.roomRepo.save(room);
+  }
+
+  async updateRoom(id: number, data: Partial<Room>) {
+    const room = await this.findRoomById(id);
+    if (!room) throw new NotFoundException('Habitación no encontrada');
+    await this.roomRepo.update(id, data);
+    return this.findRoomById(id);
+  }
+
+  async deleteRoom(id: number) {
+    const room = await this.findRoomById(id);
+    if (!room) throw new NotFoundException('Habitación no encontrada');
+    room.is_active = false;
     return this.roomRepo.save(room);
   }
 

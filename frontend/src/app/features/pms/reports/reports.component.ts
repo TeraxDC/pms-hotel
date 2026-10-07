@@ -174,10 +174,10 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
             </div>
           </div>
           <div class="text-3xl font-black text-slate-900 tracking-tight">
-            \${{ kpiData()?.financials?.total_amount || 0 }}
+            S/. {{ kpiData()?.financials?.total_amount || 0 }}
           </div>
           <div class="text-[11px] text-slate-500 mt-1">
-            Estadía: \${{ kpiData()?.financials?.total_accommodation || 0 }} • Extras: \${{ kpiData()?.financials?.total_extras || 0 }}
+            Estadía: S/. {{ kpiData()?.financials?.total_accommodation || 0 }} • Extras: S/. {{ kpiData()?.financials?.total_extras || 0 }}
           </div>
         </div>
 
@@ -190,7 +190,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
             </div>
           </div>
           <div class="text-3xl font-black text-emerald-600 tracking-tight">
-            \${{ kpiData()?.financials?.total_paid || 0 }}
+            S/. {{ kpiData()?.financials?.total_paid || 0 }}
           </div>
           <div class="text-[11px] text-slate-500 mt-1">
             Ingresos ingresados al sistema
@@ -209,7 +209,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
             class="text-3xl font-black tracking-tight"
             [ngClass]="(kpiData()?.financials?.pending_balance || 0) > 0 ? 'text-amber-600' : 'text-slate-900'"
           >
-            \${{ kpiData()?.financials?.pending_balance || 0 }}
+            S/. {{ kpiData()?.financials?.pending_balance || 0 }}
           </div>
           <div class="text-[11px] text-slate-500 mt-1">
             Cuentas abiertas en mostrador
@@ -286,7 +286,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                     Piso {{ room.floor }}
                   </td>
                   <td class="px-6 py-3.5 font-semibold text-slate-800">
-                    \${{ room.base_price }}
+                    S/. {{ room.base_price }}
                   </td>
                   <td class="px-6 py-3.5">
                     <span
@@ -308,7 +308,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                     {{ room.total_bookings }}
                   </td>
                   <td class="px-6 py-3.5 text-right font-black text-slate-900">
-                    \${{ room.total_revenue }}
+                    S/. {{ room.total_revenue }}
                   </td>
                 </tr>
               </tbody>
@@ -378,16 +378,16 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                     {{ res.status }}
                   </td>
                   <td class="px-6 py-3.5 font-bold text-slate-900">
-                    \${{ res.total_amount }}
+                    S/. {{ res.total_amount }}
                   </td>
                   <td class="px-6 py-3.5 font-bold text-emerald-600">
-                    \${{ res.paid_amount }}
+                    S/. {{ res.paid_amount }}
                   </td>
                   <td
                     class="px-6 py-3.5 text-right font-bold"
                     [ngClass]="res.pending_amount > 0 ? 'text-amber-600' : 'text-slate-400'"
                   >
-                    \${{ res.pending_amount }}
+                    S/. {{ res.pending_amount }}
                   </td>
                 </tr>
 
@@ -458,25 +458,25 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                     {{ s.closed_at ? (s.closed_at | date:'short') : 'Abierto actualmente' }}
                   </td>
                   <td class="px-6 py-3.5 font-medium">
-                    \${{ s.initial_cash }}
+                    S/. {{ s.initial_cash }}
                   </td>
                   <td class="px-6 py-3.5 font-bold text-emerald-600">
-                    +\${{ s.total_incomes }}
+                    +S/. {{ s.total_incomes }}
                   </td>
                   <td class="px-6 py-3.5 font-bold text-red-600">
-                    -\${{ s.total_expenses }}
+                    -S/. {{ s.total_expenses }}
                   </td>
                   <td class="px-6 py-3.5 font-black text-slate-900">
-                    \${{ s.expected_cash }}
+                    S/. {{ s.expected_cash }}
                   </td>
                   <td class="px-6 py-3.5 font-bold text-slate-800">
-                    {{ s.actual_cash ? '\$' + s.actual_cash : '—' }}
+                    {{ s.actual_cash ? 'S/. ' + s.actual_cash : '—' }}
                   </td>
                   <td
                     class="px-6 py-3.5 text-right font-black"
                     [ngClass]="s.difference < 0 ? 'text-red-600' : s.difference > 0 ? 'text-blue-600' : 'text-slate-700'"
                   >
-                    {{ s.difference !== null ? (s.difference >= 0 ? '+\$' + s.difference : '-\$' + (s.difference * -1)) : '—' }}
+                    {{ s.difference !== null ? (s.difference >= 0 ? '+S/. ' + s.difference : '-S/. ' + (s.difference * -1)) : '—' }}
                   </td>
                 </tr>
 
@@ -596,7 +596,7 @@ export class ReportsComponent implements OnInit {
       return;
     }
 
-    const headers = ['Codigo', 'Huesped', 'Documento', 'Habitacion', 'Check-In', 'Check-Out', 'Estado', 'Total ($)', 'Pagado ($)', 'Saldo ($)'];
+    const headers = ['Codigo', 'Huesped', 'Documento', 'Habitacion', 'Check-In', 'Check-Out', 'Estado', 'Total (S/.)', 'Pagado (S/.)', 'Saldo (S/.)'];
     const rows = reservations.map((r: any) => [
       `"${r.code}"`,
       `"${r.guest_name}"`,

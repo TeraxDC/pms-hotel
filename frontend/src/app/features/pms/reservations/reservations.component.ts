@@ -181,13 +181,19 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
 
                 <!-- Total y Saldo -->
                 <td class="px-6 py-4">
-                  <div class="font-bold text-slate-900">\${{ res.total_amount }}</div>
+                  <div class="font-bold text-slate-900">S/. {{ res.total_amount }}</div>
                   <div
                     class="text-[11px] font-semibold"
                     [ngClass]="getPendingBalance(res) > 0 ? 'text-amber-600' : 'text-emerald-600'"
                   >
-                    Saldo: \${{ getPendingBalance(res) }}
+                    Saldo: S/. {{ getPendingBalance(res) }}
                   </div>
+                  <span
+                    *ngIf="res.total_discount > 0"
+                    class="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 mt-1"
+                  >
+                    Oferta: -S/. {{ res.total_discount }}
+                  </span>
                 </td>
 
                 <!-- Acciones -->
@@ -305,7 +311,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                     Habitación {{ rr.room?.room_number }} — {{ rr.room?.room_type?.name }}
                   </span>
                   <span class="text-[11px] text-slate-500">
-                    Piso {{ rr.room?.floor }} • Tarifa por noche: \${{ rr.price_per_night }}
+                    Piso {{ rr.room?.floor }} • Tarifa por noche: S/. {{ rr.price_per_night }}
                   </span>
                 </div>
               </div>
@@ -341,16 +347,16 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
           <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-4 space-y-3">
             <div class="flex items-center justify-between text-xs">
               <span class="text-slate-500 font-medium">Total Estancia:</span>
-              <span class="font-bold text-slate-900">\${{ checkInTarget()!.total_amount }}</span>
+              <span class="font-bold text-slate-900">S/. {{ checkInTarget()!.total_amount }}</span>
             </div>
             <div class="flex items-center justify-between text-xs">
               <span class="text-slate-500 font-medium">Anticipos Registrados:</span>
-              <span class="font-bold text-emerald-600">\${{ checkInTarget()!.paid_amount }}</span>
+              <span class="font-bold text-emerald-600">S/. {{ checkInTarget()!.paid_amount }}</span>
             </div>
             <div class="flex items-center justify-between text-xs font-bold pt-2 border-t border-slate-200/50">
               <span class="text-slate-800">Saldo Pendiente por Cobrar:</span>
               <span [ngClass]="getPendingBalance(checkInTarget()!) > 0 ? 'text-amber-600 font-black text-sm' : 'text-emerald-600'">
-                \${{ getPendingBalance(checkInTarget()!) }}
+                S/. {{ getPendingBalance(checkInTarget()!) }}
               </span>
             </div>
 
@@ -364,7 +370,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               <div *ngIf="checkInForm.registerPayment" class="space-y-3 pt-1">
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Monto a Cobrar (\$) *</label>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Monto a Cobrar (S/.) *</label>
                     <input
                       type="number"
                       step="0.5"
@@ -552,13 +558,40 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               </div>
 
               <!-- Resumen Calculado de Noches -->
-              <div *ngIf="walkInCalculatedTotal > 0" class="mt-2.5 p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs">
+              <div *ngIf="walkInCalculatedTotal >= 0" class="mt-2.5 p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs">
                 <span class="text-amber-900 font-medium">
-                  {{ walkInCalculatedNights }} noche(s) x \${{ walkInRoomPrice }}/noche
+                  {{ walkInCalculatedNights }} noche(s) x S/. {{ walkInRoomPrice }}/noche
                 </span>
                 <span class="font-black text-amber-950 text-sm">
-                  Total Hospedaje: \${{ walkInCalculatedTotal }}
+                  Total Hospedaje: S/. {{ walkInCalculatedTotal }}
                 </span>
+              </div>
+
+              <!-- Descuento y Código Promocional Walk-In -->
+              <div class="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Descuento / Oferta (S/.)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    [(ngModel)]="walkInForm.discount_amount"
+                    (ngModelChange)="recalculateWalkInTotal()"
+                    name="wiDiscount"
+                    placeholder="0.00"
+                    class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Cupón o Motivo de Oferta</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="walkInForm.discount_reason"
+                    name="wiReason"
+                    placeholder="Ej: PROMO-FINDE, PROMO-CORP"
+                    class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold uppercase text-slate-800"
+                  />
+                </div>
               </div>
             </div>
 
@@ -574,7 +607,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               <div *ngIf="walkInForm.registerPayment" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Monto Pagado (\$) *</label>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Monto Pagado (S/.) *</label>
                     <input
                       type="number"
                       step="0.5"
@@ -668,15 +701,19 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
             </div>
             <div class="flex items-center justify-between text-xs">
               <span class="text-slate-500">Total Hospedaje:</span>
-              <span class="font-semibold text-slate-800">\${{ checkOutTarget()!.total_accommodation }}</span>
+              <span class="font-semibold text-slate-800">S/. {{ checkOutTarget()!.total_accommodation }}</span>
             </div>
             <div class="flex items-center justify-between text-xs">
               <span class="text-slate-500">Consumos Frigobar / Extras:</span>
-              <span class="font-semibold text-amber-600">+\${{ checkOutTarget()!.total_extras }}</span>
+              <span class="font-semibold text-amber-600">+S/. {{ checkOutTarget()!.total_extras }}</span>
+            </div>
+            <div *ngIf="checkOutTarget()!.total_discount > 0" class="flex items-center justify-between text-xs">
+              <span class="text-slate-500">Descuento / Oferta:</span>
+              <span class="font-semibold text-emerald-600">-S/. {{ checkOutTarget()!.total_discount }}</span>
             </div>
             <div class="flex items-center justify-between text-xs">
               <span class="text-slate-500">Pagos / Abonos Recibidos:</span>
-              <span class="font-semibold text-emerald-600">-\${{ checkOutTarget()!.paid_amount }}</span>
+              <span class="font-semibold text-emerald-600">-S/. {{ checkOutTarget()!.paid_amount }}</span>
             </div>
             <div class="flex items-center justify-between text-xs font-bold pt-2 border-t border-slate-200/50">
               <span class="text-slate-900">Saldo Pendiente a Liquidar:</span>
@@ -684,7 +721,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 class="text-sm font-black"
                 [ngClass]="getPendingBalance(checkOutTarget()!) > 0 ? 'text-red-600' : 'text-emerald-600'"
               >
-                \${{ getPendingBalance(checkOutTarget()!) }}
+                S/. {{ getPendingBalance(checkOutTarget()!) }}
               </span>
             </div>
           </div>
@@ -698,7 +735,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
 
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-[11px] font-bold text-slate-700 mb-1">Monto a Cobrar (\$) *</label>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">Monto a Cobrar (S/.) *</label>
                 <input
                   type="number"
                   step="0.5"
@@ -863,6 +900,32 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                   placeholder="Seleccione la habitación"
                 ></app-custom-select>
               </div>
+
+              <!-- Descuento y Código Promocional Nueva Reserva -->
+              <div class="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Descuento / Oferta (S/.)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    [(ngModel)]="newForm.discount_amount"
+                    name="resDiscount"
+                    placeholder="0.00"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Cupón o Motivo de Oferta</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="newForm.discount_reason"
+                    name="resReason"
+                    placeholder="Ej: PROMO-ANTICIPADA"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold uppercase text-slate-800"
+                  />
+                </div>
+              </div>
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
@@ -915,22 +978,26 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
           </div>
 
           <!-- Totals Ribbon -->
-          <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6 text-center">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6 text-center">
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Total Estancia</span>
-              <span class="text-lg font-black text-slate-900 block">\${{ currentFolio()!.total_accommodation }}</span>
+              <span class="text-base font-black text-slate-900 block">S/. {{ currentFolio()!.total_accommodation }}</span>
             </div>
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Cargos Extras</span>
-              <span class="text-lg font-black text-amber-600 block">+\${{ currentFolio()!.total_extras }}</span>
+              <span class="text-base font-black text-amber-600 block">+S/. {{ currentFolio()!.total_extras }}</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase text-slate-400 block">Descuento</span>
+              <span class="text-base font-black text-emerald-600 block">-S/. {{ currentFolio()!.total_discount || 0 }}</span>
             </div>
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Saldo Pendiente</span>
               <span
-                class="text-lg font-black block"
+                class="text-base font-black block"
                 [ngClass]="getPendingBalance(currentFolio()!) > 0 ? 'text-red-600' : 'text-emerald-600'"
               >
-                \${{ getPendingBalance(currentFolio()!) }}
+                S/. {{ getPendingBalance(currentFolio()!) }}
               </span>
             </div>
           </div>
@@ -957,11 +1024,42 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                   <span class="font-bold text-slate-900 block">{{ charge.concept }}</span>
                   <span class="text-[10px] text-slate-400">{{ charge.category?.name || 'Consumo' }} (Cant: {{ charge.quantity }})</span>
                 </div>
-                <span class="font-bold text-slate-800">\${{ charge.total_price }}</span>
+                <span class="font-bold text-slate-800">S/. {{ charge.total_price }}</span>
               </div>
               <div *ngIf="!currentFolio()!.extra_charges || currentFolio()!.extra_charges.length === 0" class="p-3 text-center text-slate-400">
                 Sin cargos extras registrados
               </div>
+            </div>
+          </div>
+
+          <!-- Descuentos y Ofertas Promocionales -->
+          <div class="space-y-3 mb-6">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <app-icon name="sparkles" [size]="16" class="text-emerald-600"></app-icon>
+                Descuentos & Ofertas Aplicadas
+              </h4>
+              <button
+                type="button"
+                (click)="showAddDiscount.set(true)"
+                class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-900 text-xs font-bold transition-colors cursor-pointer"
+              >
+                + Aplicar Descuento / Oferta
+              </button>
+            </div>
+
+            <div class="p-3.5 bg-white border border-slate-100 rounded-xl text-xs flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-900 block">
+                  {{ (currentFolio()!.total_discount > 0) ? 'Descuento Activo en Cuenta' : 'Sin descuento promocional aplicado' }}
+                </span>
+                <span class="text-[11px] text-slate-500">
+                  {{ currentFolio()!.notes || 'Tarifa general de sistema' }}
+                </span>
+              </div>
+              <span class="font-black text-sm" [ngClass]="currentFolio()!.total_discount > 0 ? 'text-emerald-600' : 'text-slate-400'">
+                -S/. {{ currentFolio()!.total_discount || 0 }}
+              </span>
             </div>
           </div>
 
@@ -987,7 +1085,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                   <span class="font-bold text-slate-900 block">{{ pay.payment_method?.name || 'Pago' }}</span>
                   <span class="text-[10px] text-slate-400">{{ pay.paid_at | date:'short' }} {{ pay.reference_code ? '• Ref: ' + pay.reference_code : '' }}</span>
                 </div>
-                <span class="font-bold text-emerald-600">+\${{ pay.amount }}</span>
+                <span class="font-bold text-emerald-600">+S/. {{ pay.amount }}</span>
               </div>
               <div *ngIf="!currentFolio()!.payments || currentFolio()!.payments.length === 0" class="p-3 text-center text-slate-400">
                 No hay pagos registrados aún
@@ -1046,7 +1144,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 />
               </div>
               <div>
-                <label class="block text-[11px] font-bold text-slate-600 mb-1">Precio Unit. (\$) *</label>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Precio Unit. (S/.) *</label>
                 <input
                   type="number"
                   step="0.5"
@@ -1086,7 +1184,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
 
           <div class="space-y-3">
             <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">Monto a Cobrar (\$) *</label>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Monto a Cobrar (S/.) *</label>
               <input
                 type="number"
                 step="0.5"
@@ -1131,6 +1229,63 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
         </div>
       </div>
 
+      <!-- MODAL APLICAR DESCUENTO / OFERTA EN FOLIO -->
+      <div
+        *ngIf="showAddDiscount()"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-sm w-full p-6 text-slate-800">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <app-icon name="sparkles" [size]="16" class="text-amber-600"></app-icon>
+              Aplicar Descuento / Oferta
+            </h3>
+            <button (click)="showAddDiscount.set(false)" class="p-1 text-slate-400 hover:text-slate-600 cursor-pointer">
+              <app-icon name="x" [size]="16"></app-icon>
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Monto de Descuento (S/.) *</label>
+              <input
+                type="number"
+                step="1"
+                min="1"
+                [(ngModel)]="discountForm.discount_amount"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-base font-black text-slate-900 focus:outline-hidden focus:border-amber-500"
+              />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Código Promocional o Motivo</label>
+              <input
+                type="text"
+                [(ngModel)]="discountForm.reason"
+                placeholder="Ej: PROMO-FINDE, PROMO-CORP, Cortesía"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold uppercase text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              (click)="showAddDiscount.set(false)"
+              class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              (click)="saveDiscount()"
+              class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer"
+            >
+              Aplicar Descuento
+            </button>
+          </div>
+        </div>
+      </div>
+
     </div>
   `
 })
@@ -1163,6 +1318,7 @@ export class ReservationsComponent implements OnInit {
   showFolioModal = signal<boolean>(false);
   showAddExtra = signal<boolean>(false);
   showAddPayment = signal<boolean>(false);
+  showAddDiscount = signal<boolean>(false);
 
   currentFolio = signal<any | null>(null);
 
@@ -1187,6 +1343,8 @@ export class ReservationsComponent implements OnInit {
     check_out_date: new Date(Date.now() + 86400000).toISOString().substring(0, 10),
     selectedRoomId: null as number | null,
     total_guests: 1,
+    discount_amount: 0,
+    discount_reason: '',
     registerPayment: true,
     payment: {
       amount: 0,
@@ -1217,7 +1375,14 @@ export class ReservationsComponent implements OnInit {
     check_in_date: new Date().toISOString().substring(0, 10),
     check_out_date: new Date(Date.now() + 86400000).toISOString().substring(0, 10),
     selectedRoomId: null as number | null,
-    total_guests: 1
+    total_guests: 1,
+    discount_amount: 0,
+    discount_reason: ''
+  };
+
+  discountForm = {
+    discount_amount: 10,
+    reason: ''
   };
 
   extraForm = {
@@ -1259,7 +1424,7 @@ export class ReservationsComponent implements OnInit {
       this.rooms.set(data);
       this.roomOptions = data.map((r) => ({
         value: r.id,
-        label: `Habitación ${r.room_number} - ${r.room_type?.name} (\${${r.room_type?.base_price}})`,
+        label: `Habitación ${r.room_number} - ${r.room_type?.name} (S/. ${r.room_type?.base_price})`,
         sublabel: `Piso ${r.floor} • ${r.operational_status?.name} • ${r.housekeeping_status?.name}`
       }));
 
@@ -1268,7 +1433,7 @@ export class ReservationsComponent implements OnInit {
         .filter((r) => r.operational_status?.code === 'AVAILABLE' && r.housekeeping_status?.code === 'CLEAN')
         .map((r) => ({
           value: r.id,
-          label: `Hab. ${r.room_number} - ${r.room_type?.name} (\${${r.room_type?.base_price}}/noche)`,
+          label: `Hab. ${r.room_number} - ${r.room_type?.name} (S/. ${r.room_type?.base_price}/noche)`,
           sublabel: `Piso ${r.floor} • Lista para entrega`
         }));
     });
@@ -1448,6 +1613,8 @@ export class ReservationsComponent implements OnInit {
       check_out_date: tomorrow,
       selectedRoomId: preSelectedRoomId || (this.availableCleanRoomOptions[0]?.value as number) || null,
       total_guests: 1,
+      discount_amount: 0,
+      discount_reason: '',
       registerPayment: true,
       payment: {
         amount: 0,
@@ -1472,7 +1639,9 @@ export class ReservationsComponent implements OnInit {
     const r = this.rooms().find((rm) => rm.id === this.walkInForm.selectedRoomId);
     if (r) {
       this.walkInRoomPrice = Number(r.room_type?.base_price || 0);
-      this.walkInCalculatedTotal = this.walkInRoomPrice * nights;
+      const subtotal = this.walkInRoomPrice * nights;
+      const discount = Number(this.walkInForm.discount_amount || 0);
+      this.walkInCalculatedTotal = Math.max(0, subtotal - discount);
       this.walkInForm.payment.amount = this.walkInCalculatedTotal;
     } else {
       this.walkInRoomPrice = 0;
@@ -1492,8 +1661,13 @@ export class ReservationsComponent implements OnInit {
       room_ids: [this.walkInForm.selectedRoomId],
       check_in_date: this.walkInForm.check_in_date,
       check_out_date: this.walkInForm.check_out_date,
-      total_guests: this.walkInForm.total_guests || 1
+      total_guests: this.walkInForm.total_guests || 1,
+      discount_amount: Number(this.walkInForm.discount_amount || 0)
     };
+
+    if (this.walkInForm.discount_reason) {
+      payload.notes = `Descuento: ${this.walkInForm.discount_reason}`;
+    }
 
     if (this.walkInForm.registerPayment && Number(this.walkInForm.payment.amount) > 0) {
       payload.payment = {
@@ -1569,7 +1743,21 @@ export class ReservationsComponent implements OnInit {
   // RESERVA FUTURA REGULAR
   // ==========================================
   openNewReservationModal(preSelectedRoomId?: number | null) {
-    this.newForm.selectedRoomId = preSelectedRoomId || (this.rooms()[0]?.id as number) || null;
+    this.newForm = {
+      guest: {
+        document_type_id: 1,
+        document_number: '',
+        first_name: '',
+        last_name: '',
+        phone: ''
+      },
+      check_in_date: new Date().toISOString().substring(0, 10),
+      check_out_date: new Date(Date.now() + 86400000).toISOString().substring(0, 10),
+      selectedRoomId: preSelectedRoomId || (this.rooms()[0]?.id as number) || null,
+      total_guests: 1,
+      discount_amount: 0,
+      discount_reason: ''
+    };
     this.showNewReservationModal.set(true);
   }
 
@@ -1579,14 +1767,19 @@ export class ReservationsComponent implements OnInit {
       return;
     }
 
-    const payload = {
+    const payload: any = {
       is_walk_in: false,
       guest: this.newForm.guest,
       room_ids: [this.newForm.selectedRoomId],
       check_in_date: this.newForm.check_in_date,
       check_out_date: this.newForm.check_out_date,
-      total_guests: 1
+      total_guests: 1,
+      discount_amount: Number(this.newForm.discount_amount || 0)
     };
+
+    if (this.newForm.discount_reason) {
+      payload.notes = `Descuento: ${this.newForm.discount_reason}`;
+    }
 
     this.api.post('reservations', payload).subscribe({
       next: () => {
@@ -1651,6 +1844,28 @@ export class ReservationsComponent implements OnInit {
         this.loadReservations();
       },
       error: (err) => this.toast.error(err?.error?.message || 'Error al registrar pago')
+    });
+  }
+
+  saveDiscount() {
+    const folio = this.currentFolio();
+    if (!folio || Number(this.discountForm.discount_amount) <= 0) {
+      this.toast.warning('Ingrese un monto de descuento válido mayor a 0');
+      return;
+    }
+
+    this.api.post(`reservations/${folio.id}/discount`, {
+      discount_amount: Number(this.discountForm.discount_amount),
+      reason: this.discountForm.reason || 'Descuento / Oferta especial'
+    }).subscribe({
+      next: (updated) => {
+        this.toast.success('Descuento aplicado al folio exitosamente');
+        this.currentFolio.set(updated);
+        this.showAddDiscount.set(false);
+        this.discountForm = { discount_amount: 10, reason: '' };
+        this.loadReservations();
+      },
+      error: (err) => this.toast.error(err?.error?.message || 'Error al aplicar descuento')
     });
   }
 

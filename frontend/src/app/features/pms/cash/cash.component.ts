@@ -68,15 +68,15 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 Monto Inicial en Efectivo (Sencillo / Cambio) *
               </label>
               <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold">
-                  \$
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold text-xs">
+                  S/.
                 </div>
                 <input
                   type="number"
                   step="0.10"
                   [(ngModel)]="openShiftForm.initial_cash"
                   placeholder="100.00"
-                  class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-hidden focus:border-amber-500"
+                  class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-hidden focus:border-amber-500"
                 />
               </div>
             </div>
@@ -113,7 +113,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
             <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-2xs">
               <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Monto Inicial</span>
               <span class="text-2xl font-black text-slate-900 block mt-1">
-                \${{ currentShift()!.initial_cash }}
+                S/. {{ currentShift()!.initial_cash }}
               </span>
               <span class="text-[10px] text-slate-400 font-medium block mt-1">Apertura de turno</span>
             </div>
@@ -121,7 +121,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
             <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-2xs border-l-4 border-l-emerald-500">
               <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Ingresos</span>
               <span class="text-2xl font-black text-emerald-600 block mt-1">
-                +\${{ currentShift()!.total_incomes }}
+                +S/. {{ currentShift()!.total_incomes }}
               </span>
               <span class="text-[10px] text-slate-400 font-medium block mt-1">Hospedaje & extras</span>
             </div>
@@ -129,7 +129,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
             <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-2xs border-l-4 border-l-red-500">
               <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Egresos</span>
               <span class="text-2xl font-black text-red-600 block mt-1">
-                -\${{ currentShift()!.total_expenses }}
+                -S/. {{ currentShift()!.total_expenses }}
               </span>
               <span class="text-[10px] text-slate-400 font-medium block mt-1">Compras & gastos menores</span>
             </div>
@@ -137,7 +137,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
             <div class="bg-slate-900 p-5 rounded-2xl text-white shadow-md">
               <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Efectivo en Caja</span>
               <span class="text-2xl font-black text-amber-400 block mt-1">
-                \${{ currentShift()!.expected_cash }}
+                S/. {{ currentShift()!.expected_cash }}
               </span>
               <span class="text-[10px] text-slate-400 font-medium block mt-1">Saldo teórico actual</span>
             </div>
@@ -213,7 +213,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                     <td class="px-6 py-3.5 font-medium text-slate-800">{{ m.concept }}</td>
                     <td class="px-6 py-3.5 text-slate-500">{{ m.user?.full_name || 'Cajero' }}</td>
                     <td class="px-6 py-3.5 text-right font-bold" [ngClass]="m.movement_type === 'INCOME' ? 'text-emerald-600' : 'text-red-600'">
-                      {{ m.movement_type === 'INCOME' ? '+' : '-' }}\${{ m.amount }}
+                      {{ m.movement_type === 'INCOME' ? '+' : '-' }}S/. {{ m.amount }}
                     </td>
                   </tr>
 
@@ -252,8 +252,8 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 <td class="px-6 py-4 font-semibold text-slate-800">{{ s.user?.full_name }}</td>
                 <td class="px-6 py-4 text-slate-500">{{ s.opened_at | date:'short' }}</td>
                 <td class="px-6 py-4 text-slate-500">{{ s.closed_at ? (s.closed_at | date:'short') : 'Abierto' }}</td>
-                <td class="px-6 py-4 font-bold text-slate-900">\${{ s.expected_cash }}</td>
-                <td class="px-6 py-4 font-bold text-slate-900">\${{ s.actual_cash !== null ? s.actual_cash : '-' }}</td>
+                <td class="px-6 py-4 font-bold text-slate-900">S/. {{ s.expected_cash }}</td>
+                <td class="px-6 py-4 font-bold text-slate-900">{{ s.actual_cash !== null ? 'S/. ' + s.actual_cash : '-' }}</td>
                 <td class="px-6 py-4 text-right">
                   <span
                     class="font-bold px-2 py-1 rounded-md text-xs"
@@ -263,7 +263,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                       'bg-blue-50 text-blue-700': s.difference > 0
                     }"
                   >
-                    {{ s.difference > 0 ? '+' : '' }}\${{ s.difference !== null ? s.difference : 0 }}
+                    {{ s.difference > 0 ? '+' : '' }}S/. {{ s.difference !== null ? s.difference : 0 }}
                   </span>
                 </td>
               </tr>
@@ -375,15 +375,15 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 Efectivo Físico Contado *
               </label>
               <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold">
-                  \$
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold text-xs">
+                  S/.
                 </div>
                 <input
                   type="number"
                   step="0.10"
                   [(ngModel)]="closeShiftForm.actual_cash"
                   placeholder="0.00"
-                  class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-black text-slate-900 focus:outline-hidden focus:border-amber-500"
+                  class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-black text-slate-900 focus:outline-hidden focus:border-amber-500"
                 />
               </div>
             </div>
@@ -531,16 +531,16 @@ export class CashComponent implements OnInit {
         const diff = Number(closed.difference || 0);
         let title = 'Cuadre Exacto de Turno';
         let type: 'success' | 'warning' | 'danger' = 'success';
-        let detail = `El dinero físico contado (\${closed.actual_cash}) coincide exactamente con el saldo esperado (\${closed.expected_cash}).`;
+        let detail = `El dinero físico contado (S/. ${closed.actual_cash}) coincide exactamente con el saldo esperado (S/. ${closed.expected_cash}).`;
 
         if (diff < 0) {
           title = 'Faltante en Caja';
           type = 'danger';
-          detail = `Se detectó un FALTANTE de \$${Math.abs(diff)} en el arqueo físico (Contado: \$${closed.actual_cash} | Esperado: \$${closed.expected_cash}).`;
+          detail = `Se detectó un FALTANTE de S/. ${Math.abs(diff)} en el arqueo físico (Contado: S/. ${closed.actual_cash} | Esperado: S/. ${closed.expected_cash}).`;
         } else if (diff > 0) {
           title = 'Sobrante en Caja';
           type = 'warning';
-          detail = `Se detectó un SOBRANTE de \$${diff} en el arqueo físico (Contado: \$${closed.actual_cash} | Esperado: \$${closed.expected_cash}).`;
+          detail = `Se detectó un SOBRANTE de S/. ${diff} en el arqueo físico (Contado: S/. ${closed.actual_cash} | Esperado: S/. ${closed.expected_cash}).`;
         }
 
         await this.dialog.alert(title, detail, type);

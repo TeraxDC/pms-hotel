@@ -36,6 +36,15 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
           </a>
 
           <a
+            routerLink="/pms/rooms"
+            routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
+            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <app-icon name="layers" [size]="18"></app-icon>
+            Habitaciones & Tarifas
+          </a>
+
+          <a
             routerLink="/pms/reservations"
             routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
