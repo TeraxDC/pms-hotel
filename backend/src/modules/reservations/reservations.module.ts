@@ -11,6 +11,8 @@ import { Room } from '../rooms/entities/room.entity';
 import { ReservationStatus } from '../statuses/entities/reservation-status.entity';
 import { RoomOperationalStatus } from '../statuses/entities/room-operational-status.entity';
 import { RoomHousekeepingStatus } from '../statuses/entities/room-housekeeping-status.entity';
+import { PaymentMethod } from '../statuses/entities/payment-method.entity';
+import { CashModule } from '../cash/cash.module';
 
 @Module({
   imports: [
@@ -24,7 +26,9 @@ import { RoomHousekeepingStatus } from '../statuses/entities/room-housekeeping-s
       ReservationStatus,
       RoomOperationalStatus,
       RoomHousekeepingStatus,
+      PaymentMethod,
     ]),
+    CashModule,
   ],
   controllers: [ReservationsController],
   providers: [ReservationsService],

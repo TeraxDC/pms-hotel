@@ -34,13 +34,18 @@ export class ReservationsController {
   }
 
   @Post(':id/checkin')
-  checkIn(@Param('id', ParseIntPipe) id: number) {
-    return this.reservationsService.checkIn(id);
+  checkIn(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
+    return this.reservationsService.checkIn(id, body);
   }
 
   @Post(':id/checkout')
-  checkOut(@Param('id', ParseIntPipe) id: number) {
-    return this.reservationsService.checkOut(id);
+  checkOut(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
+    return this.reservationsService.checkOut(id, body);
+  }
+
+  @Post(':id/reassign-room')
+  reassignRoom(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
+    return this.reservationsService.reassignRoom(id, body.old_room_id, body.new_room_id);
   }
 
   @Post(':id/extras')

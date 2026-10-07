@@ -50,14 +50,16 @@ export class RoomsService {
     id: number,
     data: { operational_status_id?: number; housekeeping_status_id?: number },
   ) {
-    const room = await this.findRoomById(id);
+    const updatePayload: any = {};
     if (data.operational_status_id) {
-      room.operational_status_id = data.operational_status_id;
+      updatePayload.operational_status_id = data.operational_status_id;
     }
     if (data.housekeeping_status_id) {
-      room.housekeeping_status_id = data.housekeeping_status_id;
+      updatePayload.housekeeping_status_id = data.housekeeping_status_id;
     }
-    await this.roomRepo.save(room);
+    if (Object.keys(updatePayload).length > 0) {
+      await this.roomRepo.update(id, updatePayload);
+    }
     return this.findRoomById(id);
   }
 }

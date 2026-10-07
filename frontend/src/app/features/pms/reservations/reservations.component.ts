@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../shared/components/toast/toast.service';
 import { DialogService } from '../../../shared/components/dialog/dialog.service';
@@ -15,26 +16,89 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
   template: `
     <div class="space-y-6">
       
-      <!-- Top Title and Action -->
+      <!-- Top Title and Action Buttons -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <app-icon name="calendar" [size]="24" class="text-amber-600"></app-icon>
-            Gestión de Reservas, Huéspedes & Folios
+            Recepción: Reservas, Check-In & Folios
           </h1>
           <p class="text-xs text-slate-500">
-            Control de ingresos, salidas, consumos de frigobar y facturación de cuentas.
+            Control de ingresos de huéspedes con y sin reserva (Walk-in), cargos a habitación, caja y check-out.
           </p>
         </div>
 
-        <button
-          type="button"
-          (click)="openNewModal()"
-          class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-md shadow-slate-900/20 transition-all flex items-center gap-2 self-start sm:self-auto cursor-pointer"
-        >
-          <app-icon name="plus" [size]="16" class="text-amber-400"></app-icon>
-          Nueva Reserva / Walk-in
-        </button>
+        <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <!-- Botón Check-In Walk-In (Sin Reserva) -->
+          <button
+            type="button"
+            (click)="openWalkInModal()"
+            class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 text-xs font-black shadow-md shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <app-icon name="key" [size]="16" class="text-slate-950"></app-icon>
+            Check-In Inmediato (Walk-In)
+          </button>
+
+          <!-- Botón Nueva Reserva Anticipada -->
+          <button
+            type="button"
+            (click)="openNewReservationModal()"
+            class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-md shadow-slate-900/20 transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <app-icon name="plus" [size]="16" class="text-amber-400"></app-icon>
+            Nueva Reserva Futura
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTERS AND SEARCH BAR -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4">
+        <!-- Status Tabs -->
+        <div class="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
+          <button
+            type="button"
+            (click)="filterTab.set('ALL')"
+            [ngClass]="filterTab() === 'ALL' ? 'bg-slate-900 text-white font-bold' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'"
+            class="px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer"
+          >
+            Todas ({{ reservations().length }})
+          </button>
+          <button
+            type="button"
+            (click)="filterTab.set('PENDING')"
+            [ngClass]="filterTab() === 'PENDING' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'"
+            class="px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer"
+          >
+            Por Ingresar ({{ getCountByStatusGroup('PENDING') }})
+          </button>
+          <button
+            type="button"
+            (click)="filterTab.set('CHECKED_IN')"
+            [ngClass]="filterTab() === 'CHECKED_IN' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'"
+            class="px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer"
+          >
+            En Estadía ({{ getCountByStatusGroup('CHECKED_IN') }})
+          </button>
+          <button
+            type="button"
+            (click)="filterTab.set('CHECKED_OUT')"
+            [ngClass]="filterTab() === 'CHECKED_OUT' ? 'bg-slate-700 text-white font-bold' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'"
+            class="px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer"
+          >
+            Finalizadas ({{ getCountByStatusGroup('CHECKED_OUT') }})
+          </button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative w-full md:w-72">
+          <app-icon name="search" [size]="16" class="absolute left-3 top-2.5 text-slate-400"></app-icon>
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            placeholder="Buscar por huésped, DNI o código..."
+            class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500"
+          />
+        </div>
       </div>
 
       <!-- RESERVATIONS TABLE -->
@@ -43,20 +107,28 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
           <table class="w-full text-left text-xs text-slate-600">
             <thead class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
-                <th class="px-6 py-4">Código</th>
+                <th class="px-6 py-4">Código / Tipo</th>
                 <th class="px-6 py-4">Huésped Titular</th>
                 <th class="px-6 py-4">Habitación</th>
-                <th class="px-6 py-4">Estadía</th>
+                <th class="px-6 py-4">Estadía (Noches)</th>
                 <th class="px-6 py-4">Estado</th>
                 <th class="px-6 py-4">Total / Saldo</th>
-                <th class="px-6 py-4 text-right">Acciones</th>
+                <th class="px-6 py-4 text-right">Acciones de Recepción</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-              <tr *ngFor="let res of reservations()" class="hover:bg-slate-50/80 transition-colors">
+              <tr *ngFor="let res of filteredReservations()" class="hover:bg-slate-50/80 transition-colors">
                 <!-- Código -->
                 <td class="px-6 py-4 font-mono font-bold text-slate-900">
-                  {{ res.reservation_code }}
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                      [ngClass]="res.reservation_code.startsWith('WLK') ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'"
+                    >
+                      {{ res.reservation_code.startsWith('WLK') ? 'WALK-IN' : 'RESERVA' }}
+                    </span>
+                    <span>{{ res.reservation_code }}</span>
+                  </div>
                 </td>
 
                 <!-- Huésped -->
@@ -64,25 +136,39 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                   <div class="font-bold text-slate-900">
                     {{ res.main_guest?.first_name }} {{ res.main_guest?.last_name }}
                   </div>
-                  <div class="text-[11px] text-slate-400">
-                    Doc: {{ res.main_guest?.document_number }}
+                  <div class="text-[11px] text-slate-400 flex items-center gap-2">
+                    <span>Doc: {{ res.main_guest?.document_number }}</span>
+                    <span *ngIf="res.main_guest?.phone">• Tel: {{ res.main_guest?.phone }}</span>
                   </div>
                 </td>
 
-                <!-- Habitación -->
+                <!-- Habitación y Estado de Limpieza -->
                 <td class="px-6 py-4">
-                  <div *ngFor="let rr of res.rooms" class="font-semibold text-slate-800">
-                    Hab. {{ rr.room?.room_number }} ({{ rr.room?.room_type?.name }})
+                  <div *ngFor="let rr of res.rooms" class="space-y-1">
+                    <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                      <app-icon name="bed" [size]="14" class="text-amber-600"></app-icon>
+                      Hab. {{ rr.room?.room_number }} ({{ rr.room?.room_type?.name }})
+                    </div>
+                    <!-- Badge de Limpieza -->
+                    <div *ngIf="rr.room?.housekeeping_status" class="inline-block">
+                      <app-status-badge
+                        [text]="rr.room?.housekeeping_status?.name"
+                        [colorHex]="rr.room?.housekeeping_status?.color_hex"
+                        [bgHex]="rr.room?.housekeeping_status?.badge_bg_hex"
+                        [textHex]="rr.room?.housekeeping_status?.badge_text_hex"
+                        [iconName]="rr.room?.housekeeping_status?.icon_name"
+                      ></app-status-badge>
+                    </div>
                   </div>
                 </td>
 
                 <!-- Estadía -->
                 <td class="px-6 py-4">
                   <div class="font-semibold text-slate-800">{{ res.check_in_date }}</div>
-                  <div class="text-[11px] text-slate-400">al {{ res.check_out_date }}</div>
+                  <div class="text-[11px] text-slate-400">al {{ res.check_out_date }} ({{ calculateNights(res.check_in_date, res.check_out_date) }} noches)</div>
                 </td>
 
-                <!-- Estado -->
+                <!-- Estado de Reserva -->
                 <td class="px-6 py-4">
                   <app-status-badge
                     [text]="res.status?.name"
@@ -105,42 +191,45 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 </td>
 
                 <!-- Acciones -->
-                <td class="px-6 py-4 text-right space-x-2">
-                  <!-- Botón Check-In si está confirmada -->
+                <td class="px-6 py-4 text-right space-x-1.5">
+                  <!-- Botón Check-In si está confirmada / pendiente -->
                   <button
                     *ngIf="res.status?.code === 'CONFIRMED' || res.status?.code === 'PENDING'"
                     type="button"
-                    (click)="doCheckIn(res)"
-                    class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+                    (click)="openCheckInModal(res)"
+                    class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
                   >
+                    <app-icon name="key" [size]="14"></app-icon>
                     Check-In
                   </button>
 
-                  <!-- Botón Check-Out si tiene check-in activo -->
+                  <!-- Botón Check-Out si está en estadía -->
                   <button
                     *ngIf="res.status?.code === 'CHECKED_IN'"
                     type="button"
-                    (click)="doCheckOut(res)"
-                    class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+                    (click)="openCheckOutModal(res)"
+                    class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
                   >
+                    <app-icon name="log-out" [size]="14"></app-icon>
                     Check-Out
                   </button>
 
-                  <!-- Botón Ver Folio Completo -->
+                  <!-- Botón Folio -->
                   <button
                     type="button"
                     (click)="openFolioModal(res)"
-                    class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold text-xs transition-colors cursor-pointer"
+                    class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold text-xs transition-colors cursor-pointer inline-flex items-center gap-1"
                   >
-                    Ver Folio
+                    <app-icon name="shopping-bag" [size]="14"></app-icon>
+                    Folio
                   </button>
                 </td>
               </tr>
 
-              <tr *ngIf="reservations().length === 0">
+              <tr *ngIf="filteredReservations().length === 0">
                 <td colspan="7" class="px-6 py-12 text-center text-slate-400">
                   <app-icon name="calendar" [size]="32" class="mx-auto mb-2 text-slate-300"></app-icon>
-                  No hay reservas registradas en este momento
+                  No se encontraron reservas con el criterio seleccionado
                 </td>
               </tr>
             </tbody>
@@ -148,14 +237,663 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
         </div>
       </div>
 
-      <!-- MODAL FOLIO COMPLETO & CARGOS EXTRAS -->
+      <!-- ======================================================== -->
+      <!-- MODAL 1: CHECK-IN CON RESERVA PREVIA                      -->
+      <!-- ======================================================== -->
+      <div
+        *ngIf="showCheckInModal() && checkInTarget()"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 text-slate-800 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <div class="flex items-center gap-2">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                <app-icon name="key" [size]="20"></app-icon>
+              </div>
+              <div>
+                <h3 class="text-base font-black text-slate-900">
+                  Procesar Check-In de Huésped
+                </h3>
+                <span class="text-xs text-slate-400 font-mono">
+                  Reserva: {{ checkInTarget()!.reservation_code }}
+                </span>
+              </div>
+            </div>
+
+            <button (click)="showCheckInModal.set(false)" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer">
+              <app-icon name="x" [size]="18"></app-icon>
+            </button>
+          </div>
+
+          <!-- Huésped y Datos de Estadía -->
+          <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-4 space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Huésped Titular</span>
+                <span class="text-sm font-bold text-slate-900">
+                  {{ checkInTarget()!.main_guest?.first_name }} {{ checkInTarget()!.main_guest?.last_name }}
+                </span>
+              </div>
+              <span class="text-xs text-slate-600 font-mono font-medium">
+                Doc: {{ checkInTarget()!.main_guest?.document_number }}
+              </span>
+            </div>
+
+            <div class="text-xs text-slate-600 flex items-center justify-between pt-2 border-t border-slate-200/50">
+              <span>Fechas: {{ checkInTarget()!.check_in_date }} al {{ checkInTarget()!.check_out_date }}</span>
+              <span class="font-bold text-slate-800">{{ calculateNights(checkInTarget()!.check_in_date, checkInTarget()!.check_out_date) }} noche(s)</span>
+            </div>
+          </div>
+
+          <!-- Habitación Asignada & Validación de Limpieza -->
+          <div class="mb-4">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+              Habitación Asignada y Estado de Limpieza
+            </label>
+
+            <div *ngFor="let rr of checkInTarget()!.rooms" class="p-3.5 rounded-2xl border mb-2 flex items-center justify-between"
+              [ngClass]="isRoomClean(rr.room) ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/50 border-amber-200'">
+              
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-black text-slate-900 text-sm">
+                  {{ rr.room?.room_number }}
+                </div>
+                <div>
+                  <span class="font-bold text-slate-900 text-xs block">
+                    Habitación {{ rr.room?.room_number }} — {{ rr.room?.room_type?.name }}
+                  </span>
+                  <span class="text-[11px] text-slate-500">
+                    Piso {{ rr.room?.floor }} • Tarifa por noche: \${{ rr.price_per_night }}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <app-status-badge
+                  [text]="rr.room?.housekeeping_status?.name || 'Limpia'"
+                  [colorHex]="rr.room?.housekeeping_status?.color_hex"
+                  [bgHex]="rr.room?.housekeeping_status?.badge_bg_hex"
+                  [textHex]="rr.room?.housekeeping_status?.badge_text_hex"
+                  [iconName]="rr.room?.housekeeping_status?.icon_name"
+                ></app-status-badge>
+              </div>
+            </div>
+
+            <!-- Alerta si NO está limpia -->
+            <div *ngIf="!areAllRoomsClean(checkInTarget()!)" class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs mt-2 space-y-2">
+              <div class="flex items-center gap-2 font-bold text-amber-800">
+                <app-icon name="alert-triangle" [size]="16" class="text-amber-600"></app-icon>
+                Atención: La habitación no está reportada como LIMPIA por camarería.
+              </div>
+              <p class="text-[11px] text-amber-700">
+                El sistema recomienda asignar una habitación limpia antes de entregar la llave. Si el recepcionista tiene confirmación verbal de gobernanza, marque la casilla para autorizar.
+              </p>
+              <label class="flex items-center gap-2 cursor-pointer pt-1">
+                <input type="checkbox" [(ngModel)]="checkInForm.force" class="rounded text-amber-600" />
+                <span class="text-xs font-semibold text-amber-900">Autorizar Check-In excepcional</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Balance Financiero y Cobro al Check-In -->
+          <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-4 space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-500 font-medium">Total Estancia:</span>
+              <span class="font-bold text-slate-900">\${{ checkInTarget()!.total_amount }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-500 font-medium">Anticipos Registrados:</span>
+              <span class="font-bold text-emerald-600">\${{ checkInTarget()!.paid_amount }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs font-bold pt-2 border-t border-slate-200/50">
+              <span class="text-slate-800">Saldo Pendiente por Cobrar:</span>
+              <span [ngClass]="getPendingBalance(checkInTarget()!) > 0 ? 'text-amber-600 font-black text-sm' : 'text-emerald-600'">
+                \${{ getPendingBalance(checkInTarget()!) }}
+              </span>
+            </div>
+
+            <!-- Formulario de Cobro Inmediato si hay saldo -->
+            <div *ngIf="getPendingBalance(checkInTarget()!) > 0" class="pt-3 border-t border-slate-200/50 space-y-3">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" [(ngModel)]="checkInForm.registerPayment" class="rounded text-emerald-600" />
+                <span class="text-xs font-bold text-slate-800">Registrar Cobro al Check-In</span>
+              </label>
+
+              <div *ngIf="checkInForm.registerPayment" class="space-y-3 pt-1">
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Monto a Cobrar (\$) *</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      [(ngModel)]="checkInForm.amount"
+                      class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-900 focus:outline-hidden focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Método de Pago *</label>
+                    <app-custom-select
+                      [options]="payMethodOptions"
+                      [(ngModel)]="checkInForm.payment_method_id"
+                    ></app-custom-select>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Nº Operación / Comprobante</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="checkInForm.reference_code"
+                    placeholder="OP-12345 o Efectivo en mostrador"
+                    class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botones de Acción -->
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              (click)="showCheckInModal.set(false)"
+              class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              (click)="confirmCheckIn()"
+              [disabled]="!areAllRoomsClean(checkInTarget()!) && !checkInForm.force"
+              [ngClass]="(!areAllRoomsClean(checkInTarget()!) && !checkInForm.force) ? 'opacity-50 cursor-not-allowed bg-slate-300 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 cursor-pointer'"
+              class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+            >
+              <app-icon name="key" [size]="16"></app-icon>
+              Confirmar Check-In y Entregar Llave
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- MODAL 2: CHECK-IN INMEDIATO (WALK-IN SIN RESERVA)         -->
+      <!-- ======================================================== -->
+      <div
+        *ngIf="showWalkInModal()"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-xl w-full p-6 text-slate-800 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <div class="flex items-center gap-2">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                <app-icon name="key" [size]="20"></app-icon>
+              </div>
+              <div>
+                <h3 class="text-base font-black text-slate-900">
+                  Check-In Inmediato en Mostrador (Walk-In)
+                </h3>
+                <span class="text-xs text-slate-400">
+                  Huésped sin reserva previa: asignación directa, cobro y entrega de habitación.
+                </span>
+              </div>
+            </div>
+
+            <button (click)="showWalkInModal.set(false)" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer">
+              <app-icon name="x" [size]="18"></app-icon>
+            </button>
+          </div>
+
+          <form (ngSubmit)="submitWalkIn()" class="space-y-4">
+            
+            <!-- Huésped -->
+            <div class="border-b border-slate-100 pb-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">1. Datos del Huésped</span>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">DNI / Pasaporte *</label>
+                  <div class="flex gap-1.5">
+                    <input
+                      type="text"
+                      [(ngModel)]="walkInForm.guest.document_number"
+                      (blur)="lookupGuest(walkInForm.guest.document_number)"
+                      name="wiDocNum"
+                      required
+                      placeholder="Ej. 74829102"
+                      class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500"
+                    />
+                    <button
+                      type="button"
+                      (click)="lookupGuest(walkInForm.guest.document_number)"
+                      class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 cursor-pointer"
+                      title="Buscar huésped previo"
+                    >
+                      <app-icon name="search" [size]="14"></app-icon>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Teléfono / WhatsApp *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="walkInForm.guest.phone"
+                    name="wiPhone"
+                    required
+                    placeholder="+51 987654321"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombres *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="walkInForm.guest.first_name"
+                    name="wiFirstName"
+                    required
+                    placeholder="Carlos Alberto"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Apellidos *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="walkInForm.guest.last_name"
+                    name="wiLastName"
+                    required
+                    placeholder="Sánchez Rivera"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Estadía y Habitación Limpia Disponible -->
+            <div class="border-b border-slate-100 pb-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">2. Habitación y Estadía</span>
+              <div class="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha Entrada (Hoy)</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="walkInForm.check_in_date"
+                    name="wiInDate"
+                    (change)="recalculateWalkInTotal()"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha Salida *</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="walkInForm.check_out_date"
+                    name="wiOutDate"
+                    (change)="recalculateWalkInTotal()"
+                    required
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Seleccionar Habitación Disponible (Limpia) *</label>
+                <app-custom-select
+                  [options]="availableCleanRoomOptions"
+                  [(ngModel)]="walkInForm.selectedRoomId"
+                  (ngModelChange)="onWalkInRoomChange($event)"
+                  name="wiRoom"
+                  placeholder="Seleccione habitación limpia"
+                ></app-custom-select>
+              </div>
+
+              <!-- Resumen Calculado de Noches -->
+              <div *ngIf="walkInCalculatedTotal > 0" class="mt-2.5 p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs">
+                <span class="text-amber-900 font-medium">
+                  {{ walkInCalculatedNights }} noche(s) x \${{ walkInRoomPrice }}/noche
+                </span>
+                <span class="font-black text-amber-950 text-sm">
+                  Total Hospedaje: \${{ walkInCalculatedTotal }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Cobro Inmediato (Recomendado en Walk-in) -->
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">3. Cobro en Recepción</span>
+              
+              <label class="flex items-center gap-2 cursor-pointer mb-3">
+                <input type="checkbox" [(ngModel)]="walkInForm.registerPayment" name="wiPayCheck" class="rounded text-emerald-600" />
+                <span class="text-xs font-bold text-slate-800">Registrar Cobro Inmediato (Recomendado)</span>
+              </label>
+
+              <div *ngIf="walkInForm.registerPayment" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Monto Pagado (\$) *</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      [(ngModel)]="walkInForm.payment.amount"
+                      name="wiAmount"
+                      class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-900 focus:outline-hidden focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Método de Pago *</label>
+                    <app-custom-select
+                      [options]="payMethodOptions"
+                      [(ngModel)]="walkInForm.payment.payment_method_id"
+                      name="wiPayMethod"
+                    ></app-custom-select>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Nº Comprobante / Voucher</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="walkInForm.payment.reference_code"
+                    name="wiRef"
+                    placeholder="Ej. OP-449102 o Efectivo Recepción"
+                    class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                (click)="showWalkInModal.set(false)"
+                class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 text-xs font-black shadow-md shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <app-icon name="key" [size]="16"></app-icon>
+                Completar Check-In Walk-In
+              </button>
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- MODAL 3: CHECK-OUT Y SALIDA DE HUÉSPED                    -->
+      <!-- ======================================================== -->
+      <div
+        *ngIf="showCheckOutModal() && checkOutTarget()"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 text-slate-800 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <div class="flex items-center gap-2">
+              <div class="w-10 h-10 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center">
+                <app-icon name="log-out" [size]="20"></app-icon>
+              </div>
+              <div>
+                <h3 class="text-base font-black text-slate-900">
+                  Check-Out y Entrega de Habitación
+                </h3>
+                <span class="text-xs text-slate-400 font-mono">
+                  Folio: {{ checkOutTarget()!.reservation_code }}
+                </span>
+              </div>
+            </div>
+
+            <button (click)="showCheckOutModal.set(false)" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer">
+              <app-icon name="x" [size]="18"></app-icon>
+            </button>
+          </div>
+
+          <!-- Resumen de Cuenta / Folio -->
+          <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-4 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-500">Huésped:</span>
+              <span class="font-bold text-slate-900">{{ checkOutTarget()!.main_guest?.first_name }} {{ checkOutTarget()!.main_guest?.last_name }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-500">Total Hospedaje:</span>
+              <span class="font-semibold text-slate-800">\${{ checkOutTarget()!.total_accommodation }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-500">Consumos Frigobar / Extras:</span>
+              <span class="font-semibold text-amber-600">+\${{ checkOutTarget()!.total_extras }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-500">Pagos / Abonos Recibidos:</span>
+              <span class="font-semibold text-emerald-600">-\${{ checkOutTarget()!.paid_amount }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs font-bold pt-2 border-t border-slate-200/50">
+              <span class="text-slate-900">Saldo Pendiente a Liquidar:</span>
+              <span
+                class="text-sm font-black"
+                [ngClass]="getPendingBalance(checkOutTarget()!) > 0 ? 'text-red-600' : 'text-emerald-600'"
+              >
+                \${{ getPendingBalance(checkOutTarget()!) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Si hay saldo pendiente, formulario de cobro -->
+          <div *ngIf="getPendingBalance(checkOutTarget()!) > 0" class="border border-red-200 bg-red-50/40 p-4 rounded-2xl mb-4 space-y-3">
+            <div class="flex items-center gap-2 text-xs font-bold text-red-800">
+              <app-icon name="alert-triangle" [size]="16" class="text-red-600"></app-icon>
+              El huésped debe liquidar su cuenta antes de retirarse.
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">Monto a Cobrar (\$) *</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  [(ngModel)]="checkOutForm.amount"
+                  class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-900"
+                />
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">Método de Pago *</label>
+                <app-custom-select
+                  [options]="payMethodOptions"
+                  [(ngModel)]="checkOutForm.payment_method_id"
+                ></app-custom-select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">Nº Operación / Voucher</label>
+              <input
+                type="text"
+                [(ngModel)]="checkOutForm.reference_code"
+                placeholder="OP-98765"
+                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+              />
+            </div>
+
+            <label class="flex items-center gap-2 cursor-pointer pt-1">
+              <input type="checkbox" [(ngModel)]="checkOutForm.force" class="rounded text-red-600" />
+              <span class="text-xs font-semibold text-red-800">Forzar Check-Out con saldo pendiente (Autorizado)</span>
+            </label>
+          </div>
+
+          <div *ngIf="getPendingBalance(checkOutTarget()!) === 0" class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2 mb-4">
+            <app-icon name="check-circle" [size]="16" class="text-emerald-600"></app-icon>
+            Cuenta totalmente saldada. La habitación se marcará en estado SUCIA para limpieza inmediata.
+          </div>
+
+          <!-- Actions -->
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              (click)="showCheckOutModal.set(false)"
+              class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              (click)="confirmCheckOut()"
+              class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-bold shadow-md shadow-slate-900/20 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <app-icon name="log-out" [size]="16" class="text-amber-400"></app-icon>
+              Confirmar Salida y Liberar Habitación
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- MODAL 4: NUEVA RESERVA FUTURA                             -->
+      <!-- ======================================================== -->
+      <div
+        *ngIf="showNewReservationModal()"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-xl w-full p-6 text-slate-800 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <app-icon name="calendar" [size]="18" class="text-amber-500"></app-icon>
+              Registrar Reserva Futura
+            </h3>
+            <button (click)="showNewReservationModal.set(false)" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer">
+              <app-icon name="x" [size]="18"></app-icon>
+            </button>
+          </div>
+
+          <form (ngSubmit)="submitNewReservation()" class="space-y-4">
+            <div class="border-b border-slate-100 pb-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">Huésped Titular</span>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">DNI / Pasaporte *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="newForm.guest.document_number"
+                    (blur)="lookupGuest(newForm.guest.document_number, 'new')"
+                    name="resDocNum"
+                    required
+                    placeholder="74829102"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Teléfono / WhatsApp</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="newForm.guest.phone"
+                    name="resPhone"
+                    placeholder="+51 987654321"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombres *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="newForm.guest.first_name"
+                    name="resFirstName"
+                    required
+                    placeholder="Juan Carlos"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Apellidos *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="newForm.guest.last_name"
+                    name="resLastName"
+                    required
+                    placeholder="Pérez Gómez"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">Fechas y Habitación</span>
+              <div class="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha Entrada *</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="newForm.check_in_date"
+                    name="resInDate"
+                    required
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Fecha Salida *</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="newForm.check_out_date"
+                    name="resOutDate"
+                    required
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Seleccionar Habitación *</label>
+                <app-custom-select
+                  [options]="roomOptions"
+                  [(ngModel)]="newForm.selectedRoomId"
+                  name="resRoom"
+                  placeholder="Seleccione la habitación"
+                ></app-custom-select>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                (click)="showNewReservationModal.set(false)"
+                class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer"
+              >
+                Guardar Reserva Confirmada
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- MODAL 5: FOLIO COMPLETO & CARGOS EXTRAS                   -->
+      <!-- ======================================================== -->
       <div
         *ngIf="showFolioModal() && currentFolio()"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
       >
         <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-2xl w-full p-6 text-slate-800 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
           
-          <!-- Header -->
           <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
             <div>
               <div class="flex items-center gap-2">
@@ -197,7 +935,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
             </div>
           </div>
 
-          <!-- Cargos Extras (Frigobar / Servicios) -->
+          <!-- Consumos Extras / Frigobar -->
           <div class="space-y-3 mb-6">
             <div class="flex items-center justify-between">
               <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
@@ -264,7 +1002,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               (click)="printReceipt()"
               class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
             >
-              <app-icon name="file-text" [size]="16"></app-icon>
+              <app-icon name="credit-card" [size]="16"></app-icon>
               Imprimir Comprobante
             </button>
 
@@ -338,7 +1076,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
         </div>
       </div>
 
-      <!-- MODAL REGISTRAR PAGO -->
+      <!-- MODAL REGISTRAR PAGO DIRECTO EN FOLIO -->
       <div
         *ngIf="showAddPayment()"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
@@ -352,7 +1090,7 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               <input
                 type="number"
                 step="0.5"
-                [(ngModel)]="paymentForm.amount"
+                [(ngModel)]="directPaymentForm.amount"
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-base font-black text-slate-900 focus:outline-hidden focus:border-amber-500"
               />
             </div>
@@ -360,14 +1098,14 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               <label class="block text-[11px] font-bold text-slate-600 mb-1">Método de Pago *</label>
               <app-custom-select
                 [options]="payMethodOptions"
-                [(ngModel)]="paymentForm.payment_method_id"
+                [(ngModel)]="directPaymentForm.payment_method_id"
               ></app-custom-select>
             </div>
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">Nº Operación / Voucher</label>
               <input
                 type="text"
-                [(ngModel)]="paymentForm.reference_code"
+                [(ngModel)]="directPaymentForm.reference_code"
                 placeholder="OP-987654"
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
               />
@@ -384,135 +1122,12 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
             </button>
             <button
               type="button"
-              (click)="savePayment()"
+              (click)="saveDirectPayment()"
               class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer"
             >
               Cobrar Abono
             </button>
           </div>
-        </div>
-      </div>
-
-      <!-- MODAL NUEVA RESERVA / WALK-IN -->
-      <div
-        *ngIf="showNewModal()"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
-      >
-        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-xl w-full p-6 text-slate-800 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
-          
-          <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-              <app-icon name="plus" [size]="18" class="text-amber-500"></app-icon>
-              Registrar Reserva / Entrada
-            </h3>
-            <button (click)="showNewModal.set(false)" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer">
-              <app-icon name="x" [size]="18"></app-icon>
-            </button>
-          </div>
-
-          <form (ngSubmit)="createReservation()" class="space-y-4">
-            <div class="border-b border-slate-100 pb-3">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">Huésped Titular</span>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-600 mb-1">DNI / Pasaporte *</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="newForm.guest.document_number"
-                    name="docNum"
-                    required
-                    placeholder="74829102"
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Nombres *</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="newForm.guest.first_name"
-                    name="firstName"
-                    required
-                    placeholder="Juan Carlos"
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Apellidos *</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="newForm.guest.last_name"
-                    name="lastName"
-                    required
-                    placeholder="Pérez Gómez"
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500"
-                  />
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Teléfono / WhatsApp</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="newForm.guest.phone"
-                    name="phone"
-                    placeholder="+51 987654321"
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">Asignación y Fechas</span>
-              <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Check-In *</label>
-                  <input
-                    type="date"
-                    [(ngModel)]="newForm.check_in_date"
-                    name="checkInDate"
-                    required
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
-                  />
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Check-Out *</label>
-                  <input
-                    type="date"
-                    [(ngModel)]="newForm.check_out_date"
-                    name="checkOutDate"
-                    required
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-[11px] font-bold text-slate-600 mb-1">Seleccionar Habitación *</label>
-                <app-custom-select
-                  [options]="roomOptions"
-                  [(ngModel)]="newForm.selectedRoomId"
-                  name="selectedRoom"
-                  placeholder="Seleccione la habitación"
-                ></app-custom-select>
-              </div>
-            </div>
-
-            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                (click)="showNewModal.set(false)"
-                class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-md shadow-amber-500/20 cursor-pointer"
-              >
-                Crear Reserva
-              </button>
-            </div>
-          </form>
-
         </div>
       </div>
 
@@ -523,18 +1138,73 @@ export class ReservationsComponent implements OnInit {
   private api = inject(ApiService);
   private toast = inject(ToastService);
   private dialog = inject(DialogService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   reservations = signal<any[]>([]);
   rooms = signal<any[]>([]);
+  
   roomOptions: SelectOption[] = [];
+  availableCleanRoomOptions: SelectOption[] = [];
   payMethodOptions: SelectOption[] = [];
 
-  showNewModal = signal<boolean>(false);
+  filterTab = signal<string>('ALL'); // ALL, PENDING, CHECKED_IN, CHECKED_OUT
+  searchQuery: string = '';
+
+  // Modals state
+  showCheckInModal = signal<boolean>(false);
+  checkInTarget = signal<any | null>(null);
+
+  showWalkInModal = signal<boolean>(false);
+  showCheckOutModal = signal<boolean>(false);
+  checkOutTarget = signal<any | null>(null);
+
+  showNewReservationModal = signal<boolean>(false);
   showFolioModal = signal<boolean>(false);
   showAddExtra = signal<boolean>(false);
   showAddPayment = signal<boolean>(false);
 
   currentFolio = signal<any | null>(null);
+
+  // Forms
+  checkInForm = {
+    registerPayment: true,
+    amount: 0,
+    payment_method_id: 1,
+    reference_code: '',
+    force: false
+  };
+
+  walkInForm = {
+    guest: {
+      document_type_id: 1,
+      document_number: '',
+      first_name: '',
+      last_name: '',
+      phone: ''
+    },
+    check_in_date: new Date().toISOString().substring(0, 10),
+    check_out_date: new Date(Date.now() + 86400000).toISOString().substring(0, 10),
+    selectedRoomId: null as number | null,
+    total_guests: 1,
+    registerPayment: true,
+    payment: {
+      amount: 0,
+      payment_method_id: 1,
+      reference_code: ''
+    }
+  };
+
+  walkInCalculatedNights: number = 1;
+  walkInRoomPrice: number = 0;
+  walkInCalculatedTotal: number = 0;
+
+  checkOutForm = {
+    amount: 0,
+    payment_method_id: 1,
+    reference_code: '',
+    force: false
+  };
 
   newForm = {
     guest: {
@@ -546,7 +1216,7 @@ export class ReservationsComponent implements OnInit {
     },
     check_in_date: new Date().toISOString().substring(0, 10),
     check_out_date: new Date(Date.now() + 86400000).toISOString().substring(0, 10),
-    selectedRoomId: null,
+    selectedRoomId: null as number | null,
     total_guests: 1
   };
 
@@ -556,19 +1226,21 @@ export class ReservationsComponent implements OnInit {
     unit_price: 5.0
   };
 
-  paymentForm = {
+  directPaymentForm = {
     amount: 50.0,
     payment_method_id: 1,
     reference_code: ''
   };
 
   ngOnInit() {
-    this.loadReservations();
-    this.loadRooms();
     this.loadPaymentMethods();
+    this.loadRooms();
+    this.loadReservations(() => {
+      this.checkUrlParams();
+    });
   }
 
-  loadReservations() {
+  loadReservations(callback?: () => void) {
     this.api.get<any[]>('reservations').subscribe({
       next: (data) => {
         this.reservations.set(data);
@@ -576,6 +1248,7 @@ export class ReservationsComponent implements OnInit {
           const updated = data.find((r) => r.id === this.currentFolio().id);
           if (updated) this.currentFolio.set(updated);
         }
+        if (callback) callback();
       },
       error: () => this.toast.error('No se pudieron cargar las reservas')
     });
@@ -587,8 +1260,17 @@ export class ReservationsComponent implements OnInit {
       this.roomOptions = data.map((r) => ({
         value: r.id,
         label: `Habitación ${r.room_number} - ${r.room_type?.name} (\${${r.room_type?.base_price}})`,
-        sublabel: `Piso ${r.floor}`
+        sublabel: `Piso ${r.floor} • ${r.operational_status?.name} • ${r.housekeeping_status?.name}`
       }));
+
+      // Filtrar para Walk-in: solo habitaciones Disponibles y Limpias
+      this.availableCleanRoomOptions = data
+        .filter((r) => r.operational_status?.code === 'AVAILABLE' && r.housekeeping_status?.code === 'CLEAN')
+        .map((r) => ({
+          value: r.id,
+          label: `Hab. ${r.room_number} - ${r.room_type?.name} (\${${r.room_type?.base_price}}/noche)`,
+          sublabel: `Piso ${r.floor} • Lista para entrega`
+        }));
     });
   }
 
@@ -601,20 +1283,331 @@ export class ReservationsComponent implements OnInit {
     });
   }
 
+  checkUrlParams() {
+    this.route.queryParams.subscribe((params) => {
+      const action = params['action'];
+      const roomId = params['room_id'] ? parseInt(params['room_id'], 10) : null;
+      const resId = params['res_id'] ? parseInt(params['res_id'], 10) : null;
+
+      if (action === 'walkin') {
+        this.openWalkInModal(roomId);
+      } else if (action === 'new') {
+        this.openNewReservationModal(roomId);
+      } else if (action === 'checkin' && resId) {
+        const found = this.reservations().find((r) => r.id === resId);
+        if (found) this.openCheckInModal(found);
+      } else if (action === 'checkout' && resId) {
+        const found = this.reservations().find((r) => r.id === resId);
+        if (found) this.openCheckOutModal(found);
+      } else if (action === 'folio' && resId) {
+        const found = this.reservations().find((r) => r.id === resId);
+        if (found) this.openFolioModal(found);
+      }
+    });
+  }
+
+  filteredReservations(): any[] {
+    return this.reservations().filter((res) => {
+      // Filtro por tab
+      const code = res.status?.code;
+      if (this.filterTab() === 'PENDING' && code !== 'CONFIRMED' && code !== 'PENDING') return false;
+      if (this.filterTab() === 'CHECKED_IN' && code !== 'CHECKED_IN') return false;
+      if (this.filterTab() === 'CHECKED_OUT' && code !== 'CHECKED_OUT' && code !== 'CANCELLED') return false;
+
+      // Filtro por búsqueda
+      if (this.searchQuery.trim()) {
+        const q = this.searchQuery.toLowerCase();
+        const guestName = `${res.main_guest?.first_name || ''} ${res.main_guest?.last_name || ''}`.toLowerCase();
+        const doc = (res.main_guest?.document_number || '').toLowerCase();
+        const resCode = (res.reservation_code || '').toLowerCase();
+        return guestName.includes(q) || doc.includes(q) || resCode.includes(q);
+      }
+
+      return true;
+    });
+  }
+
+  getCountByStatusGroup(group: string): number {
+    return this.reservations().filter((res) => {
+      const code = res.status?.code;
+      if (group === 'PENDING') return code === 'CONFIRMED' || code === 'PENDING';
+      if (group === 'CHECKED_IN') return code === 'CHECKED_IN';
+      if (group === 'CHECKED_OUT') return code === 'CHECKED_OUT';
+      return true;
+    }).length;
+  }
+
+  calculateNights(dIn: string, dOut: string): number {
+    if (!dIn || !dOut) return 1;
+    const t1 = new Date(dIn).getTime();
+    const t2 = new Date(dOut).getTime();
+    return Math.max(1, Math.round((t2 - t1) / (1000 * 3600 * 24)));
+  }
+
   getPendingBalance(res: any): number {
+    if (!res) return 0;
     return Math.max(0, Number(res.total_amount || 0) - Number(res.paid_amount || 0));
   }
 
-  openNewModal() {
-    this.newForm.selectedRoomId = this.rooms()[0]?.id || null;
-    this.showNewModal.set(true);
+  isRoomClean(room: any): boolean {
+    if (!room) return false;
+    return room.housekeeping_status?.code === 'CLEAN';
   }
 
+  areAllRoomsClean(res: any): boolean {
+    if (!res || !res.rooms) return true;
+    return res.rooms.every((rr: any) => this.isRoomClean(rr.room));
+  }
+
+  lookupGuest(docNumber: string, targetForm: 'walkin' | 'new' = 'walkin') {
+    if (!docNumber || docNumber.trim().length < 4) return;
+    this.api.get<any[]>('reservations/guests', { q: docNumber.trim() }).subscribe((guests) => {
+      if (guests && guests.length > 0) {
+        const match = guests.find((g) => g.document_number === docNumber.trim()) || guests[0];
+        if (targetForm === 'walkin') {
+          this.walkInForm.guest.first_name = match.first_name;
+          this.walkInForm.guest.last_name = match.last_name;
+          this.walkInForm.guest.phone = match.phone || '';
+          this.toast.info(`Huésped recurrente encontrado: ${match.first_name} ${match.last_name}`);
+        } else {
+          this.newForm.guest.first_name = match.first_name;
+          this.newForm.guest.last_name = match.last_name;
+          this.newForm.guest.phone = match.phone || '';
+          this.toast.info(`Huésped recurrente encontrado: ${match.first_name} ${match.last_name}`);
+        }
+      }
+    });
+  }
+
+  // ==========================================
+  // FLUJO 1: CHECK-IN CON RESERVA PREVIA
+  // ==========================================
+  openCheckInModal(res: any) {
+    this.api.get<any>(`reservations/${res.id}`).subscribe({
+      next: (full) => {
+        this.checkInTarget.set(full);
+        const pending = this.getPendingBalance(full);
+        this.checkInForm.amount = pending;
+        this.checkInForm.registerPayment = pending > 0;
+        this.checkInForm.payment_method_id = this.payMethodOptions[0]?.value || 1;
+        this.checkInForm.reference_code = '';
+        this.checkInForm.force = false;
+        this.showCheckInModal.set(true);
+      },
+      error: () => this.toast.error('Error al cargar datos de la reserva')
+    });
+  }
+
+  confirmCheckIn() {
+    const res = this.checkInTarget();
+    if (!res) return;
+
+    const payload: any = {
+      force: this.checkInForm.force
+    };
+
+    if (this.checkInForm.registerPayment && Number(this.checkInForm.amount) > 0) {
+      payload.payment = {
+        amount: Number(this.checkInForm.amount),
+        payment_method_id: this.checkInForm.payment_method_id,
+        reference_code: this.checkInForm.reference_code,
+        notes: 'Pago en Check-In'
+      };
+    }
+
+    this.api.post(`reservations/${res.id}/checkin`, payload).subscribe({
+      next: () => {
+        this.toast.success(`Check-In exitoso para la reserva ${res.reservation_code}. Habitación ocupada.`);
+        this.showCheckInModal.set(false);
+        this.loadReservations();
+        this.loadRooms();
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message || 'Error al procesar el Check-In');
+      }
+    });
+  }
+
+  // ==========================================
+  // FLUJO 2: CHECK-IN INMEDIATO (WALK-IN)
+  // ==========================================
+  openWalkInModal(preSelectedRoomId?: number | null) {
+    this.loadRooms();
+    const today = new Date().toISOString().substring(0, 10);
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().substring(0, 10);
+
+    this.walkInForm = {
+      guest: {
+        document_type_id: 1,
+        document_number: '',
+        first_name: '',
+        last_name: '',
+        phone: ''
+      },
+      check_in_date: today,
+      check_out_date: tomorrow,
+      selectedRoomId: preSelectedRoomId || (this.availableCleanRoomOptions[0]?.value as number) || null,
+      total_guests: 1,
+      registerPayment: true,
+      payment: {
+        amount: 0,
+        payment_method_id: this.payMethodOptions[0]?.value || 1,
+        reference_code: ''
+      }
+    };
+
+    this.recalculateWalkInTotal();
+    this.showWalkInModal.set(true);
+  }
+
+  onWalkInRoomChange(roomId: number) {
+    this.walkInForm.selectedRoomId = roomId;
+    this.recalculateWalkInTotal();
+  }
+
+  recalculateWalkInTotal() {
+    const nights = this.calculateNights(this.walkInForm.check_in_date, this.walkInForm.check_out_date);
+    this.walkInCalculatedNights = nights;
+
+    const r = this.rooms().find((rm) => rm.id === this.walkInForm.selectedRoomId);
+    if (r) {
+      this.walkInRoomPrice = Number(r.room_type?.base_price || 0);
+      this.walkInCalculatedTotal = this.walkInRoomPrice * nights;
+      this.walkInForm.payment.amount = this.walkInCalculatedTotal;
+    } else {
+      this.walkInRoomPrice = 0;
+      this.walkInCalculatedTotal = 0;
+    }
+  }
+
+  submitWalkIn() {
+    if (!this.walkInForm.guest.document_number || !this.walkInForm.guest.first_name || !this.walkInForm.selectedRoomId) {
+      this.toast.warning('Complete los campos obligatorios del huésped y habitación');
+      return;
+    }
+
+    const payload: any = {
+      is_walk_in: true,
+      guest: this.walkInForm.guest,
+      room_ids: [this.walkInForm.selectedRoomId],
+      check_in_date: this.walkInForm.check_in_date,
+      check_out_date: this.walkInForm.check_out_date,
+      total_guests: this.walkInForm.total_guests || 1
+    };
+
+    if (this.walkInForm.registerPayment && Number(this.walkInForm.payment.amount) > 0) {
+      payload.payment = {
+        amount: Number(this.walkInForm.payment.amount),
+        payment_method_id: this.walkInForm.payment.payment_method_id,
+        reference_code: this.walkInForm.payment.reference_code,
+        notes: 'Cobro Check-In Inmediato Walk-In'
+      };
+    }
+
+    this.api.post<any>('reservations', payload).subscribe({
+      next: (created) => {
+        this.toast.success(`Check-In Walk-In registrado (${created.reservation_code}). Habitación ocupada.`);
+        this.showWalkInModal.set(false);
+        this.loadReservations();
+        this.loadRooms();
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message || 'Error al completar el Walk-In');
+      }
+    });
+  }
+
+  // ==========================================
+  // FLUJO 3: CHECK-OUT Y SALIDA DE HUÉSPED
+  // ==========================================
+  openCheckOutModal(res: any) {
+    this.api.get<any>(`reservations/${res.id}`).subscribe({
+      next: (full) => {
+        this.checkOutTarget.set(full);
+        const pending = this.getPendingBalance(full);
+        this.checkOutForm.amount = pending;
+        this.checkOutForm.payment_method_id = this.payMethodOptions[0]?.value || 1;
+        this.checkOutForm.reference_code = '';
+        this.checkOutForm.force = false;
+        this.showCheckOutModal.set(true);
+      },
+      error: () => this.toast.error('Error al cargar datos para Check-Out')
+    });
+  }
+
+  confirmCheckOut() {
+    const res = this.checkOutTarget();
+    if (!res) return;
+
+    const payload: any = {
+      force: this.checkOutForm.force
+    };
+
+    if (Number(this.checkOutForm.amount) > 0) {
+      payload.payment = {
+        amount: Number(this.checkOutForm.amount),
+        payment_method_id: this.checkOutForm.payment_method_id,
+        reference_code: this.checkOutForm.reference_code,
+        notes: 'Liquidación saldo en Check-Out'
+      };
+    }
+
+    this.api.post(`reservations/${res.id}/checkout`, payload).subscribe({
+      next: () => {
+        this.toast.success(`Check-Out finalizado para ${res.reservation_code}. Habitación liberada y marcada para limpieza.`);
+        this.showCheckOutModal.set(false);
+        this.loadReservations();
+        this.loadRooms();
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message || 'Error al procesar el Check-Out');
+      }
+    });
+  }
+
+  // ==========================================
+  // RESERVA FUTURA REGULAR
+  // ==========================================
+  openNewReservationModal(preSelectedRoomId?: number | null) {
+    this.newForm.selectedRoomId = preSelectedRoomId || (this.rooms()[0]?.id as number) || null;
+    this.showNewReservationModal.set(true);
+  }
+
+  submitNewReservation() {
+    if (!this.newForm.guest.document_number || !this.newForm.guest.first_name || !this.newForm.selectedRoomId) {
+      this.toast.warning('Complete los datos obligatorios del huésped y habitación');
+      return;
+    }
+
+    const payload = {
+      is_walk_in: false,
+      guest: this.newForm.guest,
+      room_ids: [this.newForm.selectedRoomId],
+      check_in_date: this.newForm.check_in_date,
+      check_out_date: this.newForm.check_out_date,
+      total_guests: 1
+    };
+
+    this.api.post('reservations', payload).subscribe({
+      next: () => {
+        this.toast.success('Reserva futura confirmada exitosamente');
+        this.showNewReservationModal.set(false);
+        this.loadReservations();
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message || 'Error al guardar reserva');
+      }
+    });
+  }
+
+  // ==========================================
+  // FOLIO & CARGOS EXTRAS
+  // ==========================================
   openFolioModal(res: any) {
     this.api.get(`reservations/${res.id}`).subscribe({
       next: (full) => {
         this.currentFolio.set(full);
-        this.paymentForm.amount = this.getPendingBalance(full);
+        this.directPaymentForm.amount = this.getPendingBalance(full);
         this.showFolioModal.set(true);
       }
     });
@@ -633,7 +1626,7 @@ export class ReservationsComponent implements OnInit {
       unit_price: this.extraForm.unit_price
     }).subscribe({
       next: (updated) => {
-        this.toast.success('Cargo extra registrado al folio');
+        this.toast.success('Consumo extra agregado al folio');
         this.currentFolio.set(updated);
         this.showAddExtra.set(false);
         this.extraForm = { concept: '', quantity: 1, unit_price: 5.0 };
@@ -643,93 +1636,25 @@ export class ReservationsComponent implements OnInit {
     });
   }
 
-  savePayment() {
+  saveDirectPayment() {
     const folio = this.currentFolio();
-    if (!folio || !this.paymentForm.amount || !this.paymentForm.payment_method_id) {
+    if (!folio || !this.directPaymentForm.amount || !this.directPaymentForm.payment_method_id) {
       this.toast.warning('Ingrese el monto y método de pago');
       return;
     }
 
-    this.api.post(`reservations/${folio.id}/payments`, this.paymentForm).subscribe({
+    this.api.post(`reservations/${folio.id}/payments`, this.directPaymentForm).subscribe({
       next: (updated) => {
-        this.toast.success('Pago registrado correctamente');
+        this.toast.success('Pago abonado correctamente');
         this.currentFolio.set(updated);
         this.showAddPayment.set(false);
         this.loadReservations();
       },
-      error: () => this.toast.error('Error al registrar pago')
+      error: (err) => this.toast.error(err?.error?.message || 'Error al registrar pago')
     });
   }
 
   printReceipt() {
     window.print();
-  }
-
-  async doCheckIn(res: any) {
-    const confirm = await this.dialog.confirm({
-      title: 'Realizar Check-In',
-      message: `¿Desea ingresar el Check-In para la reserva ${res.reservation_code}? La habitación pasará a estado OCUPADA.`,
-      type: 'info',
-      confirmText: 'Registrar Entrada'
-    });
-    if (!confirm) return;
-
-    this.api.post(`reservations/${res.id}/checkin`, {}).subscribe({
-      next: () => {
-        this.toast.success(`Check-In realizado para ${res.reservation_code}`);
-        this.loadReservations();
-      },
-      error: () => this.toast.error('Error al procesar el Check-In')
-    });
-  }
-
-  async doCheckOut(res: any) {
-    const pending = this.getPendingBalance(res);
-    let message = `¿Desea registrar el Check-Out para la reserva ${res.reservation_code}? La habitación quedará en estado SUCIA para limpieza.`;
-    if (pending > 0) {
-      message = `¡ATENCIÓN! El huésped tiene un saldo pendiente de \$${pending}. ¿Desea proceder con el Check-Out?`;
-    }
-
-    const confirm = await this.dialog.confirm({
-      title: 'Realizar Check-Out',
-      message,
-      type: pending > 0 ? 'warning' : 'info',
-      confirmText: 'Completar Salida'
-    });
-    if (!confirm) return;
-
-    this.api.post(`reservations/${res.id}/checkout`, {}).subscribe({
-      next: () => {
-        this.toast.success(`Check-Out finalizado para ${res.reservation_code}`);
-        this.loadReservations();
-      },
-      error: () => this.toast.error('Error al procesar el Check-Out')
-    });
-  }
-
-  createReservation() {
-    if (!this.newForm.guest.document_number || !this.newForm.guest.first_name || !this.newForm.selectedRoomId) {
-      this.toast.warning('Por favor complete los campos obligatorios');
-      return;
-    }
-
-    const payload = {
-      guest: this.newForm.guest,
-      room_ids: [this.newForm.selectedRoomId],
-      check_in_date: this.newForm.check_in_date,
-      check_out_date: this.newForm.check_out_date,
-      total_guests: 1
-    };
-
-    this.api.post('reservations', payload).subscribe({
-      next: () => {
-        this.toast.success('Reserva creada exitosamente');
-        this.showNewModal.set(false);
-        this.loadReservations();
-      },
-      error: (err) => {
-        this.toast.error(err?.error?.message || 'Error al crear la reserva');
-      }
-    });
   }
 }
