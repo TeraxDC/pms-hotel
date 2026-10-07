@@ -87,6 +87,14 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
           >
             Finalizadas ({{ getCountByStatusGroup('CHECKED_OUT') }})
           </button>
+          <button
+            type="button"
+            (click)="filterTab.set('CANCELLED')"
+            [ngClass]="filterTab() === 'CANCELLED' ? 'bg-rose-600 text-white font-bold' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'"
+            class="px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer"
+          >
+            Canceladas ({{ getCountByStatusGroup('CANCELLED') }})
+          </button>
         </div>
 
         <!-- Search Input -->
@@ -228,6 +236,18 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                   >
                     <app-icon name="shopping-bag" [size]="14"></app-icon>
                     Folio
+                  </button>
+
+                  <!-- Botón Cancelar si no está finalizada ni cancelada -->
+                  <button
+                    *ngIf="res.status?.code !== 'CHECKED_OUT' && res.status?.code !== 'CANCELLED'"
+                    type="button"
+                    (click)="openCancelModal(res)"
+                    class="px-2.5 py-1.5 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 font-semibold text-xs transition-colors cursor-pointer inline-flex items-center gap-1"
+                    title="Cancelar reserva"
+                  >
+                    <app-icon name="x-circle" [size]="14" class="text-rose-600"></app-icon>
+                    Cancelar
                   </button>
                 </td>
               </tr>
@@ -1301,6 +1321,102 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
         </div>
       </div>
 
+      <!-- ======================================================== -->
+      <!-- MODAL 6: CANCELAR RESERVA                                -->
+      <!-- ======================================================== -->
+      <div
+        *ngIf="showCancelModal() && cancelTarget()"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 text-slate-800 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          <!-- Header -->
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                <app-icon name="x-circle" [size]="20"></app-icon>
+              </div>
+              <div>
+                <h3 class="text-base font-black text-slate-900">Cancelar Reserva</h3>
+                <p class="text-xs text-slate-400">
+                  {{ cancelTarget()?.reservation_code }} — {{ cancelTarget()?.main_guest?.first_name }} {{ cancelTarget()?.main_guest?.last_name }}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              (click)="closeCancelModal()"
+              class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <app-icon name="x" [size]="16"></app-icon>
+            </button>
+          </div>
+
+          <!-- Alert -->
+          <div class="my-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
+            <app-icon name="alert-triangle" [size]="18" class="text-amber-600 shrink-0 mt-0.5"></app-icon>
+            <div>
+              <p class="font-bold">Liberación inmediata de habitaciones</p>
+              <p class="mt-0.5 text-amber-800">
+                Al confirmar la cancelación, la reserva pasará a estado <strong>Cancelada</strong> y todas las habitaciones asociadas quedarán <strong>Disponibles</strong> de inmediato en el Rack y Cotizador.
+              </p>
+            </div>
+          </div>
+
+          <!-- Body Form -->
+          <div class="space-y-4">
+            <!-- Motivo de Cancelación -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                Motivo de Cancelación <span class="text-rose-500">*</span>
+              </label>
+              <select
+                [(ngModel)]="cancelReason"
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:border-rose-500 focus:bg-white transition-all cursor-pointer"
+              >
+                <option value="Cancelación solicitada por el huésped">Cancelación solicitada por el huésped</option>
+                <option value="No-Show / Huésped no se presentó">No-Show / Huésped no se presentó</option>
+                <option value="Cambio de fechas o itinerario">Cambio de fechas o itinerario</option>
+                <option value="Problemas personales o de fuerza mayor">Problemas personales o de fuerza mayor</option>
+                <option value="Error de registro o duplicidad">Error de registro o duplicidad</option>
+                <option value="Otro motivo">Otro motivo</option>
+              </select>
+            </div>
+
+            <!-- Observaciones adicionales -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">Detalles u Observaciones (Opcional)</label>
+              <textarea
+                [(ngModel)]="cancelNotes"
+                rows="3"
+                placeholder="Indique detalles adicionales sobre la cancelación (ej. solicitud por WhatsApp/teléfono, acuerdos de reembolso, etc.)..."
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-hidden focus:border-rose-500 focus:bg-white transition-all"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Footer Buttons -->
+          <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              (click)="closeCancelModal()"
+              class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+            >
+              Regresar
+            </button>
+            <button
+              type="button"
+              (click)="confirmCancellation()"
+              [disabled]="isCancelling()"
+              class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <app-icon *ngIf="!isCancelling()" name="x-circle" [size]="16"></app-icon>
+              <span *ngIf="isCancelling()">Cancelando...</span>
+              <span *ngIf="!isCancelling()">Confirmar Cancelación</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
     </div>
   `
 })
@@ -1330,6 +1446,12 @@ export class ReservationsComponent implements OnInit {
   checkOutTarget = signal<any | null>(null);
 
   showNewReservationModal = signal<boolean>(false);
+  showCancelModal = signal<boolean>(false);
+  cancelTarget = signal<any | null>(null);
+  cancelReason: string = 'Cancelación solicitada por el huésped';
+  cancelNotes: string = '';
+  isCancelling = signal<boolean>(false);
+
   showFolioModal = signal<boolean>(false);
   showAddExtra = signal<boolean>(false);
   showAddPayment = signal<boolean>(false);
@@ -1500,7 +1622,8 @@ export class ReservationsComponent implements OnInit {
       const code = res.status?.code;
       if (this.filterTab() === 'PENDING' && code !== 'CONFIRMED' && code !== 'PENDING') return false;
       if (this.filterTab() === 'CHECKED_IN' && code !== 'CHECKED_IN') return false;
-      if (this.filterTab() === 'CHECKED_OUT' && code !== 'CHECKED_OUT' && code !== 'CANCELLED') return false;
+      if (this.filterTab() === 'CHECKED_OUT' && code !== 'CHECKED_OUT') return false;
+      if (this.filterTab() === 'CANCELLED' && code !== 'CANCELLED') return false;
 
       // Filtro por búsqueda
       if (this.searchQuery.trim()) {
@@ -1521,6 +1644,7 @@ export class ReservationsComponent implements OnInit {
       if (group === 'PENDING') return code === 'CONFIRMED' || code === 'PENDING';
       if (group === 'CHECKED_IN') return code === 'CHECKED_IN';
       if (group === 'CHECKED_OUT') return code === 'CHECKED_OUT';
+      if (group === 'CANCELLED') return code === 'CANCELLED';
       return true;
     }).length;
   }
@@ -1912,5 +2036,42 @@ export class ReservationsComponent implements OnInit {
 
   printReceipt() {
     window.print();
+  }
+
+  openCancelModal(res: any) {
+    this.cancelTarget.set(res);
+    this.cancelReason = 'Cancelación solicitada por el huésped';
+    this.cancelNotes = '';
+    this.showCancelModal.set(true);
+  }
+
+  closeCancelModal() {
+    this.showCancelModal.set(false);
+    this.cancelTarget.set(null);
+  }
+
+  confirmCancellation() {
+    const target = this.cancelTarget();
+    if (!target) return;
+
+    this.isCancelling.set(true);
+    this.api
+      .post(`reservations/${target.id}/cancel`, {
+        reason: this.cancelReason,
+        notes: this.cancelNotes
+      })
+      .subscribe({
+        next: () => {
+          this.toast.success(`Reserva ${target.reservation_code} cancelada exitosamente y habitaciones liberadas.`);
+          this.closeCancelModal();
+          this.isCancelling.set(false);
+          this.loadReservations();
+          this.loadRooms();
+        },
+        error: (err) => {
+          this.toast.error(err?.error?.message || 'Error al cancelar la reserva');
+          this.isCancelling.set(false);
+        }
+      });
   }
 }

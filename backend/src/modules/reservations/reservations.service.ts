@@ -341,6 +341,57 @@ export class ReservationsService {
     return this.findOne(id);
   }
 
+  async cancel(
+    id: number,
+    data?: {
+      reason?: string;
+      notes?: string;
+    },
+  ) {
+    const res = await this.findOne(id);
+
+    if (res.status?.code === 'CANCELLED') {
+      throw new BadRequestException('La reserva ya se encuentra cancelada.');
+    }
+    if (res.status?.code === 'CHECKED_OUT') {
+      throw new BadRequestException('No se puede cancelar una reserva con Check-Out finalizado.');
+    }
+
+    const cancelledStatus = await this.resStatusRepo.findOne({ where: { code: 'CANCELLED' } });
+    if (!cancelledStatus) {
+      throw new BadRequestException('Estado CANCELLED no configurado en el sistema.');
+    }
+
+    const cancelDateStr = new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' });
+    const cancelNote = `[CANCELACIÓN ${cancelDateStr}]: Motivo: ${data?.reason || 'Cancelado a solicitud del huésped'}${data?.notes ? ' | ' + data.notes : ''}`;
+    const newNotes = res.notes ? `${res.notes}\n${cancelNote}` : cancelNote;
+
+    await this.reservationRepo.update(id, {
+      status_id: cancelledStatus.id,
+      notes: newNotes,
+    });
+
+    // Liberar habitaciones asignadas (volverlas AVAILABLE)
+    const opAvailable = await this.opStatusRepo.findOne({ where: { code: 'AVAILABLE' } });
+    const hkDirty = await this.hkStatusRepo.findOne({ where: { code: 'DIRTY' } });
+
+    if (res.rooms && res.rooms.length > 0) {
+      for (const rr of res.rooms) {
+        if (rr.room_id) {
+          const updateData: any = {
+            operational_status_id: opAvailable ? opAvailable.id : 1,
+          };
+          if (res.status?.code === 'CHECKED_IN') {
+            updateData.housekeeping_status_id = hkDirty ? hkDirty.id : 2;
+          }
+          await this.roomRepo.update(rr.room_id, updateData);
+        }
+      }
+    }
+
+    return this.findOne(id);
+  }
+
   async addExtraCharge(
     reservationId: number,
     data: { concept: string; quantity: number; unit_price: number; category_id?: number; room_id?: number },

@@ -43,6 +43,11 @@ export class ReservationsController {
     return this.reservationsService.checkOut(id, body);
   }
 
+  @Post(':id/cancel')
+  cancel(@Param('id', ParseIntPipe) id: number, @Body() body: { reason?: string; notes?: string }) {
+    return this.reservationsService.cancel(id, body);
+  }
+
   @Post(':id/reassign-room')
   reassignRoom(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
     return this.reservationsService.reassignRoom(id, body.old_room_id, body.new_room_id);

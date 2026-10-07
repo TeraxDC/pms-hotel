@@ -84,6 +84,8 @@ export class AuthService {
         return ['SUPERADMIN'].includes(user.role);
       case 'cms':
         return ['SUPERADMIN', 'ADMIN'].includes(user.role);
+      case 'hotel_settings':
+        return user.role === 'SUPERADMIN';
       default:
         return false;
     }

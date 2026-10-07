@@ -88,11 +88,22 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 
           <!-- Configuración Group -->
           <div
-            *ngIf="auth.canAccess('users') || auth.canAccess('statuses') || auth.canAccess('cms')"
+            *ngIf="auth.canAccess('users') || auth.canAccess('statuses') || auth.canAccess('cms') || auth.canAccess('hotel_settings')"
             class="pt-4 pb-2"
           >
             <span class="px-3.5 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Configuración</span>
           </div>
+
+          <a
+            *ngIf="auth.canAccess('hotel_settings')"
+            routerLink="/pms/hotel-info"
+            routerLinkActive="bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold"
+            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <app-icon name="building" [size]="18"></app-icon>
+            <span>Información del Hospedaje</span>
+            <span class="ml-auto px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">Superadmin</span>
+          </a>
 
           <a
             *ngIf="auth.canAccess('users')"

@@ -59,6 +59,12 @@ export const routes: Routes = [
       { path: 'users', component: UsersComponent, canActivate: [roleGuard], data: { module: 'users' } },
       { path: 'statuses', component: StatusesManagerComponent, canActivate: [roleGuard], data: { module: 'statuses' } },
       { path: 'cms', component: CmsAdminComponent, canActivate: [roleGuard], data: { module: 'cms' } },
+      {
+        path: 'hotel-info',
+        loadComponent: () => import('./features/pms/hotel-info/hotel-info.component').then(m => m.HotelInfoComponent),
+        canActivate: [roleGuard],
+        data: { module: 'hotel_settings' }
+      },
     ]
   },
   // Fallback
