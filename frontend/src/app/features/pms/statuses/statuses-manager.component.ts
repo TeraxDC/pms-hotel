@@ -11,7 +11,7 @@ import { StatusBadgeComponent } from '../../../shared/components/status-badge/st
   standalone: true,
   imports: [CommonModule, FormsModule, IconComponent, StatusBadgeComponent],
   template: `
-    <div class="space-y-8 max-w-5xl">
+    <div class="space-y-8 w-full">
       <div>
         <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
           <app-icon name="sliders" [size]="24" class="text-amber-600"></app-icon>

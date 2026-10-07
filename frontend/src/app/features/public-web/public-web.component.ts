@@ -92,9 +92,15 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
       </nav>
 
       <!-- HERO SECTION WITH INTEGRATED BOOKING ENGINE -->
-      <section id="inicio" class="relative bg-slate-950 text-white py-20 lg:py-28 overflow-hidden">
-        <!-- Background subtle glow -->
-        <div class="absolute inset-0 bg-radial from-slate-900 via-slate-950 to-slate-950 opacity-90"></div>
+      <section id="inicio" class="relative bg-slate-950 text-white py-20 lg:py-28 overflow-hidden min-h-[560px] flex flex-col justify-center">
+        <!-- Dynamic Background Cover Photo from CMS -->
+        <div 
+          *ngIf="heroCoverImage()"
+          class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 opacity-25 scale-105"
+          [style.backgroundImage]="'url(' + heroCoverImage() + ')'"
+        ></div>
+        <!-- Background subtle glow & gradient -->
+        <div class="absolute inset-0 bg-radial from-slate-900/80 via-slate-950/95 to-slate-950 opacity-90"></div>
         <div class="absolute -right-20 -top-20 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -106,11 +112,11 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
             </div>
             
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1]">
-              Tu Refugio de Descanso en el Corazón de la Ciudad
+              {{ heroTitle() }}
             </h1>
             
             <p class="mt-4 text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
-              Habitaciones climatizadas, camas de máxima ergonomía, WiFi de alta velocidad y atención hospitalaria personalizada sin intermediarios.
+              {{ heroSubtitle() }}
             </p>
           </div>
 
@@ -206,8 +212,8 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
               *ngFor="let type of roomTypes()"
               class="bg-white rounded-3xl border border-slate-100 shadow-2xs hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group"
             >
-              <!-- Photo Container -->
-              <div class="relative h-60 bg-slate-200 overflow-hidden">
+              <!-- Photo Container with interactive Gallery trigger -->
+              <div class="relative h-60 bg-slate-200 overflow-hidden cursor-pointer" (click)="openRoomGallery(type)">
                 <img
                   [src]="type.photos?.[0] || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80'"
                   [alt]="type.name"
@@ -223,6 +229,12 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
                 <div class="absolute bottom-4 left-4 bg-white/95 backdrop-blur-xs text-slate-900 px-3 py-1 rounded-xl font-bold text-[11px] shadow-md flex items-center gap-1.5">
                   <app-icon name="users" [size]="13" class="text-amber-600"></app-icon>
                   Hasta {{ type.max_capacity }} huésped(es)
+                </div>
+
+                <!-- Photos count indicator badge -->
+                <div *ngIf="type.photos && type.photos.length > 1" class="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-xs text-white px-2.5 py-1 rounded-xl font-bold text-[10px] shadow-md flex items-center gap-1.5 border border-slate-700/60 hover:bg-slate-900 transition-colors">
+                  <app-icon name="camera" [size]="12" class="text-amber-400"></app-icon>
+                  {{ type.photos.length }} fotos
                 </div>
               </div>
 
@@ -458,6 +470,87 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
         </div>
       </footer>
 
+      <!-- ROOM PHOTO GALLERY LIGHTBOX MODAL -->
+      <div 
+        *ngIf="selectedRoomGallery()" 
+        class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+        (click)="closeRoomGallery()"
+      >
+        <div 
+          class="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+          (click)="$event.stopPropagation()"
+        >
+          <!-- Modal Header -->
+          <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <app-icon name="camera" [size]="16"></app-icon>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-white leading-tight">
+                  {{ selectedRoomGallery()?.name }} - Galería Fotográfica
+                </h3>
+                <span class="text-[11px] text-slate-400">
+                  Foto {{ activeGalleryPhotoIndex() + 1 }} de {{ (selectedRoomGallery()?.photos?.length || 1) }}
+                </span>
+              </div>
+            </div>
+            
+            <button 
+              type="button"
+              (click)="closeRoomGallery()"
+              class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center cursor-pointer transition-colors"
+            >
+              <app-icon name="x" [size]="16"></app-icon>
+            </button>
+          </div>
+
+          <!-- Main Image Display -->
+          <div class="relative bg-black flex items-center justify-center min-h-[350px] sm:min-h-[440px] max-h-[60vh] overflow-hidden">
+            <img 
+              [src]="getCurrentGalleryPhoto()" 
+              [alt]="selectedRoomGallery()?.name" 
+              class="max-h-full max-w-full object-contain select-none"
+            />
+
+            <!-- Prev / Next navigation buttons -->
+            <button 
+              *ngIf="(selectedRoomGallery()?.photos?.length || 0) > 1"
+              type="button"
+              (click)="prevGalleryPhoto()"
+              class="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-slate-900/80 hover:bg-slate-900 text-white flex items-center justify-center border border-slate-700/80 backdrop-blur-xs cursor-pointer transition-transform hover:scale-110 shadow-lg"
+            >
+              <app-icon name="chevron-left" [size]="20"></app-icon>
+            </button>
+            <button 
+              *ngIf="(selectedRoomGallery()?.photos?.length || 0) > 1"
+              type="button"
+              (click)="nextGalleryPhoto()"
+              class="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-slate-900/80 hover:bg-slate-900 text-white flex items-center justify-center border border-slate-700/80 backdrop-blur-xs cursor-pointer transition-transform hover:scale-110 shadow-lg"
+            >
+              <app-icon name="chevron-right" [size]="20"></app-icon>
+            </button>
+          </div>
+
+          <!-- Thumbnails Strip -->
+          <div 
+            *ngIf="(selectedRoomGallery()?.photos?.length || 0) > 1" 
+            class="p-4 bg-slate-950 border-t border-slate-800/80 flex items-center gap-3 overflow-x-auto"
+          >
+            <div 
+              *ngFor="let photo of selectedRoomGallery()?.photos; let idx = index"
+              (click)="activeGalleryPhotoIndex.set(idx)"
+              class="w-16 h-12 rounded-xl overflow-hidden cursor-pointer border-2 transition-all shrink-0"
+              [class.border-amber-500]="activeGalleryPhotoIndex() === idx"
+              [class.border-transparent]="activeGalleryPhotoIndex() !== idx"
+              [class.opacity-50]="activeGalleryPhotoIndex() !== idx"
+            >
+              <img [src]="photo" class="w-full h-full object-cover" />
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   `
 })
@@ -469,6 +562,15 @@ export class PublicWebComponent implements OnInit {
   roomTypes = signal<any[]>([]);
 
   offers = signal<any[]>([]);
+
+  // Hero banner customizations from CMS
+  heroCoverImage = signal<string>('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1600&q=80');
+  heroTitle = signal<string>('Tu Refugio de Descanso en el Corazón de la Ciudad');
+  heroSubtitle = signal<string>('Habitaciones climatizadas, camas de máxima ergonomía, WiFi de alta velocidad y atención hospitalaria personalizada sin intermediarios.');
+
+  // Room photo gallery lightbox state
+  selectedRoomGallery = signal<any | null>(null);
+  activeGalleryPhotoIndex = signal<number>(0);
 
   searchDates = {
     checkIn: new Date().toISOString().substring(0, 10),
@@ -484,7 +586,7 @@ export class PublicWebComponent implements OnInit {
   ngOnInit() {
     this.loadHotelData();
     this.loadRoomTypes();
-    this.loadCmsOffers();
+    this.loadCmsData();
   }
 
   loadHotelData() {
@@ -497,15 +599,60 @@ export class PublicWebComponent implements OnInit {
     });
   }
 
-  loadCmsOffers() {
+  loadCmsData() {
     this.api.get<any[]>('cms/public').subscribe({
       next: (sections) => {
         const offersSec = sections.find((s) => s.section_key === 'offers');
         if (offersSec && offersSec.items) {
           this.offers.set(offersSec.items.filter((i: any) => i.is_active));
         }
+
+        const heroSec = sections.find((s) => s.section_key === 'hero');
+        if (heroSec) {
+          if (heroSec.title) this.heroTitle.set(heroSec.title);
+          if (heroSec.subtitle) this.heroSubtitle.set(heroSec.subtitle);
+          if (heroSec.items && heroSec.items.length > 0 && heroSec.items[0].image_url) {
+            this.heroCoverImage.set(heroSec.items[0].image_url);
+          }
+        }
       }
     });
+  }
+
+  openRoomGallery(type: any) {
+    this.selectedRoomGallery.set(type);
+    this.activeGalleryPhotoIndex.set(0);
+  }
+
+  closeRoomGallery() {
+    this.selectedRoomGallery.set(null);
+    this.activeGalleryPhotoIndex.set(0);
+  }
+
+  getCurrentGalleryPhoto(): string {
+    const room = this.selectedRoomGallery();
+    if (!room) return '';
+    if (room.photos && room.photos.length > 0) {
+      const idx = this.activeGalleryPhotoIndex();
+      return room.photos[idx] || room.photos[0];
+    }
+    return 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
+  }
+
+  prevGalleryPhoto() {
+    const room = this.selectedRoomGallery();
+    if (!room || !room.photos || room.photos.length <= 1) return;
+    const current = this.activeGalleryPhotoIndex();
+    const prev = current <= 0 ? room.photos.length - 1 : current - 1;
+    this.activeGalleryPhotoIndex.set(prev);
+  }
+
+  nextGalleryPhoto() {
+    const room = this.selectedRoomGallery();
+    if (!room || !room.photos || room.photos.length <= 1) return;
+    const current = this.activeGalleryPhotoIndex();
+    const next = current >= room.photos.length - 1 ? 0 : current + 1;
+    this.activeGalleryPhotoIndex.set(next);
   }
 
   loadRoomTypes() {

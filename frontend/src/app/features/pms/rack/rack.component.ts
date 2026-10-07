@@ -49,30 +49,94 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
         </div>
       </div>
 
-      <!-- STATUS SUMMARY CARDS -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <!-- STATUS SUMMARY CARDS (FUNCIONAN COMO FILTROS INTERACTIVOS) -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Filtro por Estado Operativo
+          </span>
+          <span *ngIf="selectedStatusFilter() !== null" class="text-xs text-amber-600 font-bold">
+            Filtro Activo: {{ getActiveStatusName() }}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
+          <!-- CARD TOTAL (TODAS LAS HABITACIONES) -->
+          <div
+            (click)="selectedStatusFilter.set(null)"
+            class="bg-white p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between shadow-2xs select-none"
+            [ngClass]="selectedStatusFilter() === null ? 'ring-2 ring-slate-900 border-slate-900 bg-slate-50/80 shadow-md' : 'border-slate-100 hover:border-slate-300 hover:shadow-xs'"
+            [style.borderLeftColor]="selectedStatusFilter() === null ? '#0F172A' : '#64748B'"
+            [style.borderLeftWidth]="'4px'"
+          >
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                Todas (Total)
+              </span>
+              <span class="text-2xl font-black text-slate-900 block mt-0.5">
+                {{ rooms().length }}
+              </span>
+            </div>
+
+            <div
+              class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              [ngClass]="selectedStatusFilter() === null ? 'bg-slate-900 text-amber-400' : 'bg-slate-100 text-slate-600'"
+            >
+              <app-icon name="layers" [size]="18"></app-icon>
+            </div>
+          </div>
+
+          <!-- CARDS POR CADA ESTADO OPERATIVO -->
+          <div
+            *ngFor="let stat of operationalStatuses()"
+            (click)="toggleStatusFilter(stat.id)"
+            class="bg-white p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between shadow-2xs select-none"
+            [ngClass]="selectedStatusFilter() === stat.id ? 'ring-2 ring-slate-900 border-slate-900 bg-slate-50/80 shadow-md scale-[1.01]' : 'border-slate-100 hover:border-slate-300 hover:shadow-xs'"
+            [style.borderLeftColor]="stat.color_hex"
+            [style.borderLeftWidth]="'4px'"
+          >
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block truncate max-w-[110px]" [title]="stat.name">
+                  {{ stat.name }}
+                </span>
+                <span *ngIf="selectedStatusFilter() === stat.id" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              </div>
+              <span class="text-2xl font-black text-slate-900 block mt-0.5">
+                {{ getCountByOperational(stat.id) }}
+              </span>
+            </div>
+
+            <div
+              class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              [style.backgroundColor]="stat.badge_bg_hex"
+              [style.color]="stat.badge_text_hex"
+            >
+              <app-icon [name]="stat.icon_name || 'check-circle'" [size]="18"></app-icon>
+            </div>
+          </div>
+        </div>
+
+        <!-- BANNER DE FILTRO ACTIVO -->
         <div
-          *ngFor="let stat of operationalStatuses()"
-          class="bg-white p-4 rounded-2xl border border-slate-100 shadow-2xs flex items-center justify-between"
-          [style.borderLeftColor]="stat.color_hex"
-          [style.borderLeftWidth]="'4px'"
+          *ngIf="selectedStatusFilter() !== null"
+          class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between text-xs text-amber-900 animate-in fade-in duration-150"
         >
-          <div>
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              {{ stat.name }}
-            </span>
-            <span class="text-2xl font-black text-slate-900 block mt-0.5">
-              {{ getCountByOperational(stat.id) }}
+          <div class="flex items-center gap-2">
+            <app-icon name="filter" [size]="15" class="text-amber-600"></app-icon>
+            <span>
+              Filtrando habitaciones en estado: <strong class="font-bold underline">{{ getActiveStatusName() }}</strong> — Mostrando <strong>{{ getFilteredRoomsCount() }}</strong> de {{ rooms().length }} habitaciones.
             </span>
           </div>
 
-          <div
-            class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            [style.backgroundColor]="stat.badge_bg_hex"
-            [style.color]="stat.badge_text_hex"
+          <button
+            type="button"
+            (click)="selectedStatusFilter.set(null)"
+            class="px-3 py-1 rounded-xl bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 font-bold text-xs transition-colors cursor-pointer flex items-center gap-1.5"
           >
-            <app-icon [name]="stat.icon_name || 'check-circle'" [size]="18"></app-icon>
-          </div>
+            <app-icon name="x" [size]="13"></app-icon>
+            Quitar Filtro (Ver Todas)
+          </button>
         </div>
       </div>
 
@@ -147,6 +211,29 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- EMPTY STATE CUANDO EL FILTRO NO TIENE HABITACIONES -->
+      <div
+        *ngIf="floors().length === 0"
+        class="bg-white rounded-3xl border border-slate-100 shadow-2xs p-12 text-center text-slate-400 space-y-3"
+      >
+        <app-icon name="search" [size]="36" class="mx-auto text-slate-300"></app-icon>
+        <p class="text-sm font-bold text-slate-700">
+          No se encontraron habitaciones en estado "{{ getActiveStatusName() }}"
+        </p>
+        <p class="text-xs text-slate-400">
+          Actualmente ninguna habitación se encuentra en esta condición operativa.
+        </p>
+        <div class="pt-2">
+          <button
+            type="button"
+            (click)="selectedStatusFilter.set(null)"
+            class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            Restablecer Filtro y Mostrar Todas
+          </button>
         </div>
       </div>
 
@@ -365,6 +452,7 @@ export class RackComponent implements OnInit {
   operationalStatuses = signal<any[]>([]);
   housekeepingStatuses = signal<any[]>([]);
   selectedRoom = signal<any | null>(null);
+  selectedStatusFilter = signal<number | null>(null);
 
   editStatusData = {
     opId: 1,
@@ -422,12 +510,42 @@ export class RackComponent implements OnInit {
   }
 
   floors(): number[] {
-    const list = this.rooms().map((r) => r.floor);
+    const filterId = this.selectedStatusFilter();
+    const activeRooms = filterId === null
+      ? this.rooms()
+      : this.rooms().filter((r) => r.operational_status_id === filterId);
+    const list = activeRooms.map((r) => r.floor);
     return Array.from(new Set(list)).sort((a, b) => a - b);
   }
 
   getRoomsByFloor(floor: number): any[] {
-    return this.rooms().filter((r) => r.floor === floor);
+    const filterId = this.selectedStatusFilter();
+    return this.rooms().filter((r) => {
+      if (r.floor !== floor) return false;
+      if (filterId !== null && r.operational_status_id !== filterId) return false;
+      return true;
+    });
+  }
+
+  toggleStatusFilter(statId: number | null) {
+    if (this.selectedStatusFilter() === statId) {
+      this.selectedStatusFilter.set(null);
+    } else {
+      this.selectedStatusFilter.set(statId);
+    }
+  }
+
+  getActiveStatusName(): string {
+    const id = this.selectedStatusFilter();
+    if (id === null) return '';
+    const found = this.operationalStatuses().find((s) => s.id === id);
+    return found ? found.name : '';
+  }
+
+  getFilteredRoomsCount(): number {
+    const id = this.selectedStatusFilter();
+    if (id === null) return this.rooms().length;
+    return this.rooms().filter((r) => r.operational_status_id === id).length;
   }
 
   getCountByOperational(opId: number): number {
