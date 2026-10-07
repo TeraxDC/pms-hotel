@@ -52,6 +52,7 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
       await this.seedCmsSections();
       await this.ensureHotelCurrency();
       await this.seedOffersCmsSection();
+      await this.seedAmenitiesCmsSection();
       this.logger.log('Tablas parametrizables verificadas exitosamente.');
     } catch (err: any) {
       this.logger.warn(`Error o base de datos no conectada aún: ${err?.message || err}`);
@@ -390,6 +391,79 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
           icon_name: 'calendar',
           link_url: 'PROMO-ANTICIPADA',
           display_order: 3,
+          is_active: true,
+        },
+      ]);
+    }
+  }
+
+  private async seedAmenitiesCmsSection() {
+    let amenitiesSec = await this.cmsSectionRepo.findOne({ where: { section_key: 'amenities' } });
+    if (!amenitiesSec) {
+      amenitiesSec = this.cmsSectionRepo.create({
+        section_key: 'amenities',
+        title: 'Servicios & Comodidades del Hotel',
+        subtitle: 'Diseñamos cada ambiente y servicio pensando en su máximo confort y descanso.',
+        is_active: true,
+      });
+      amenitiesSec = await this.cmsSectionRepo.save(amenitiesSec);
+    }
+
+    const itemsCount = await this.cmsItemRepo.count({ where: { section_id: amenitiesSec.id } });
+    if (itemsCount === 0) {
+      await this.cmsItemRepo.save([
+        {
+          section_id: amenitiesSec.id,
+          title: 'Frigobar & Bebidas Seleccionadas',
+          content: 'Bebidas refrescantes, agua mineral, licores y snacks premium a su disposición en el frigobar de su habitación.',
+          icon_name: 'coffee',
+          link_url: 'EXTRA',
+          display_order: 1,
+          is_active: true,
+        },
+        {
+          section_id: amenitiesSec.id,
+          title: 'Lavandería & Tintorería Express',
+          content: 'Servicio de lavado, secado y planchado profesional con recojo y entrega directa en su habitación.',
+          icon_name: 'sparkles',
+          link_url: 'EXTRA',
+          display_order: 2,
+          is_active: true,
+        },
+        {
+          section_id: amenitiesSec.id,
+          title: 'Restaurante & Desayuno Buffet',
+          content: 'Variedad de opciones a la carta, gastronomía local y servicio de desayuno matutino con ingredientes frescos.',
+          icon_name: 'coffee',
+          link_url: 'INCLUDED',
+          display_order: 3,
+          is_active: true,
+        },
+        {
+          section_id: amenitiesSec.id,
+          title: 'Cochera & Estacionamiento Techado',
+          content: 'Espacio de estacionamiento privado, techado y seguro con vigilancia permanente las 24 horas del día.',
+          icon_name: 'car',
+          link_url: 'INCLUDED',
+          display_order: 4,
+          is_active: true,
+        },
+        {
+          section_id: amenitiesSec.id,
+          title: 'WiFi de Fibra Óptica 5G',
+          content: 'Conexión inalámbrica simétrica de alta velocidad garantizada en todas las habitaciones y áreas comunes.',
+          icon_name: 'wifi',
+          link_url: 'INCLUDED',
+          display_order: 5,
+          is_active: true,
+        },
+        {
+          section_id: amenitiesSec.id,
+          title: 'Recepción & Asistencia 24 Horas',
+          content: 'Mostrador activo permanentemente para check-in nocturnos, custodia de equipaje e información turística.',
+          icon_name: 'clock',
+          link_url: 'INCLUDED',
+          display_order: 6,
           is_active: true,
         },
       ]);

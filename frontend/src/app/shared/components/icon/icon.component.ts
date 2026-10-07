@@ -275,6 +275,22 @@ import { CommonModule } from '@angular/common';
           <circle cx="12" cy="13" r="3" />
         </ng-container>
 
+        <!-- Coffee / Minibar / Restaurant -->
+        <ng-container *ngSwitchCase="'coffee'">
+          <path d="M10 2v2" />
+          <path d="M14 2v2" />
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+          <line x1="6" x2="6" y1="2" y2="4" />
+        </ng-container>
+
+        <!-- Car / Parking / Cochera -->
+        <ng-container *ngSwitchCase="'car'">
+          <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+          <circle cx="7" cy="17" r="2" />
+          <circle cx="17" cy="17" r="2" />
+        </ng-container>
+
         <!-- Fallback Default Icon -->
         <ng-container *ngSwitchDefault>
           <circle cx="12" cy="12" r="10" />

@@ -70,12 +70,22 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 
         <button
           type="button"
+          (click)="activeTab.set('services')"
+          [ngClass]="activeTab() === 'services' ? 'bg-slate-900 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'"
+          class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+        >
+          <app-icon name="shopping-bag" [size]="15" class="text-amber-400"></app-icon>
+          Servicios Adicionales (Amenities & Consumos)
+        </button>
+
+        <button
+          type="button"
           (click)="activeTab.set('sections')"
           [ngClass]="activeTab() === 'sections' ? 'bg-slate-900 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'"
           class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer"
         >
           <app-icon name="sliders" [size]="15" class="text-amber-400"></app-icon>
-          Secciones de Texto (Nosotros, Servicios, Contacto)
+          Secciones de Texto (Nosotros, Contacto)
         </button>
       </div>
 
@@ -457,7 +467,123 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       </div>
 
       <!-- ======================================================== -->
-      <!-- TAB 4: OTRAS SECCIONES INFORMATIVAS                      -->
+      <!-- TAB 4: SERVICIOS ADICIONALES (AMENITIES & CONSUMOS)      -->
+      <!-- ======================================================== -->
+      <div *ngIf="activeTab() === 'services'" class="space-y-6">
+        
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-2xs p-6 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <app-icon name="shopping-bag" [size]="18" class="text-amber-600"></app-icon>
+                Servicios Adicionales & Amenidades del Hotel
+              </h2>
+              <span class="text-xs text-slate-400">
+                Administre los servicios y consumos que se muestran a los huéspedes en la página web pública.
+              </span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                (click)="syncPmsExtraCategories()"
+                class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+                title="Importar las categorías de consumo adicionales configuradas en el PMS"
+              >
+                <app-icon name="clock" [size]="14"></app-icon>
+                Sincronizar del PMS
+              </button>
+
+              <button
+                type="button"
+                (click)="openAddServiceModal()"
+                class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-md shadow-slate-900/10 flex items-center gap-2 cursor-pointer"
+              >
+                <app-icon name="plus" [size]="16" class="text-amber-400"></app-icon>
+                Nuevo Servicio
+              </button>
+            </div>
+          </div>
+
+          <!-- Services Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div
+              *ngFor="let item of getAmenitiesItems()"
+              class="p-5 rounded-2xl border transition-all flex flex-col justify-between"
+              [ngClass]="item.is_active ? 'bg-white border-slate-200 shadow-2xs' : 'bg-slate-50 border-slate-200/60 opacity-60'"
+            >
+              <div>
+                <div class="flex items-start justify-between gap-3 mb-3">
+                  <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                    <app-icon [name]="item.icon_name || 'sparkles'" [size]="22"></app-icon>
+                  </div>
+                  
+                  <span
+                    class="px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                    [ngClass]="item.link_url === 'INCLUDED' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-900 border border-amber-200'"
+                  >
+                    {{ item.link_url === 'INCLUDED' ? 'Servicio Incluido' : (item.link_url === 'EXTRA' ? 'Consumo / Cargo Adicional' : item.link_url) }}
+                  </span>
+                </div>
+
+                <h3 class="text-sm font-bold text-slate-900 mb-1.5">
+                  {{ item.title }}
+                </h3>
+
+                <p class="text-xs text-slate-500 leading-relaxed mb-4">
+                  {{ item.content || 'Sin descripción detallada.' }}
+                </p>
+              </div>
+
+              <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <button
+                  type="button"
+                  (click)="toggleItemStatus(item)"
+                  class="text-[11px] font-bold cursor-pointer transition-colors"
+                  [ngClass]="item.is_active ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600'"
+                >
+                  {{ item.is_active ? '● Activo en Web' : '○ Inactivo' }}
+                </button>
+
+                <div class="flex items-center gap-1">
+                  <button
+                    type="button"
+                    (click)="openEditServiceModal(item)"
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                    title="Editar servicio"
+                  >
+                    <app-icon name="edit" [size]="15"></app-icon>
+                  </button>
+                  <button
+                    type="button"
+                    (click)="deleteItem(item)"
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                    title="Eliminar servicio"
+                  >
+                    <app-icon name="trash" [size]="15"></app-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="getAmenitiesItems().length === 0" class="col-span-full py-12 text-center text-slate-400">
+              <app-icon name="shopping-bag" [size]="32" class="mx-auto mb-2 opacity-50"></app-icon>
+              <p class="text-xs">No hay servicios adicionales registrados aún.</p>
+              <button
+                type="button"
+                (click)="syncPmsExtraCategories()"
+                class="mt-3 px-4 py-2 bg-amber-500 text-slate-950 rounded-xl text-xs font-bold inline-flex items-center gap-2 cursor-pointer"
+              >
+                Importar Servicios del PMS
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- TAB 5: OTRAS SECCIONES INFORMATIVAS                      -->
       <!-- ======================================================== -->
       <div *ngIf="activeTab() === 'sections'" class="space-y-6">
         <div
@@ -696,6 +822,136 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
         </div>
       </div>
 
+      <!-- ============================================== -->
+      <!-- MODAL: NUEVO / EDITAR SERVICIO ADICIONAL       -->
+      <!-- ============================================== -->
+      <div
+        *ngIf="showServiceModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+      >
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 text-slate-800 animate-in zoom-in-95 duration-150">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <app-icon name="shopping-bag" [size]="18" class="text-amber-600"></app-icon>
+                {{ editingServiceId ? 'Editar Servicio Adicional' : 'Nuevo Servicio Adicional' }}
+              </h3>
+              <span class="text-xs text-slate-400">Configure cómo se exhibirá en la página web pública</span>
+            </div>
+            <button
+              (click)="showServiceModal = false"
+              class="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer"
+            >
+              <app-icon name="x" [size]="18"></app-icon>
+            </button>
+          </div>
+
+          <form (ngSubmit)="saveServiceModal()" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Nombre del Servicio *
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="serviceForm.title"
+                name="title"
+                required
+                placeholder="Ej: Frigobar & Bebidas Seleccionadas"
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-hidden focus:border-amber-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Descripción / Beneficio *
+              </label>
+              <textarea
+                [(ngModel)]="serviceForm.content"
+                name="content"
+                rows="3"
+                required
+                placeholder="Describa el servicio, horarios o facilidades para el huésped..."
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-hidden focus:border-amber-500"
+              ></textarea>
+            </div>
+
+            <!-- Modalidad del Servicio: Incluido o Costo Adicional -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Modalidad del Servicio
+              </label>
+              <div class="grid grid-cols-2 gap-3">
+                <div
+                  (click)="serviceForm.service_type = 'INCLUDED'"
+                  class="p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-2"
+                  [ngClass]="serviceForm.service_type === 'INCLUDED' ? 'border-emerald-500 bg-emerald-50/50 text-emerald-900 font-bold' : 'border-slate-200 bg-slate-50 text-slate-600'"
+                >
+                  <app-icon name="check-circle" [size]="16" class="text-emerald-600"></app-icon>
+                  <span class="text-xs">Incluido en Estadía</span>
+                </div>
+
+                <div
+                  (click)="serviceForm.service_type = 'EXTRA'"
+                  class="p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-2"
+                  [ngClass]="serviceForm.service_type === 'EXTRA' ? 'border-amber-500 bg-amber-50/50 text-amber-900 font-bold' : 'border-slate-200 bg-slate-50 text-slate-600'"
+                >
+                  <app-icon name="dollar-sign" [size]="16" class="text-amber-600"></app-icon>
+                  <span class="text-xs">Cargo / Consumo Extra</span>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="serviceForm.service_type === 'EXTRA'">
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Nota de Tarifa o Precio (Opcional)
+              </label>
+              <input
+                type="text"
+                [(ngModel)]="serviceForm.price_note"
+                name="price_note"
+                placeholder="Ej: Según consumo / S/. 20.00"
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-hidden focus:border-amber-500"
+              />
+            </div>
+
+            <!-- Selector de Icono -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Icono Representativo
+              </label>
+              <div class="flex flex-wrap gap-2">
+                <div
+                  *ngFor="let ic of availableIcons"
+                  (click)="serviceForm.icon_name = ic"
+                  class="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer transition-colors"
+                  [ngClass]="serviceForm.icon_name === ic ? 'border-amber-500 bg-amber-50 text-amber-600 ring-2 ring-amber-500/20' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'"
+                >
+                  <app-icon [name]="ic" [size]="16"></app-icon>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                (click)="showServiceModal = false"
+                class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                [disabled]="isSavingService"
+                class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-md shadow-slate-900/10 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <app-icon name="check" [size]="16" class="text-amber-400"></app-icon>
+                {{ isSavingService ? 'Guardando...' : 'Guardar Servicio' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
     </div>
   `
 })
@@ -704,7 +960,7 @@ export class CmsAdminComponent implements OnInit {
   private toast = inject(ToastService);
   private dialog = inject(DialogService);
 
-  activeTab = signal<'cover' | 'rooms' | 'offers' | 'sections'>('cover');
+  activeTab = signal<'cover' | 'rooms' | 'offers' | 'services' | 'sections'>('cover');
 
   sections = signal<any[]>([]);
   roomTypes = signal<any[]>([]);
@@ -749,6 +1005,20 @@ export class CmsAdminComponent implements OnInit {
     icon_name: 'sparkles'
   };
 
+  // Service Modal State (Servicios Adicionales)
+  showServiceModal = false;
+  editingServiceId: number | null = null;
+  isSavingService = false;
+  serviceForm = {
+    title: '',
+    content: '',
+    icon_name: 'sparkles',
+    service_type: 'INCLUDED' as 'INCLUDED' | 'EXTRA',
+    price_note: '',
+    is_active: true
+  };
+  availableIcons = ['wifi', 'coffee', 'car', 'sparkles', 'clock', 'shopping-bag', 'key', 'shield', 'phone', 'bed'];
+
   ngOnInit() {
     this.loadSections();
     this.loadRoomTypes();
@@ -781,8 +1051,133 @@ export class CmsAdminComponent implements OnInit {
     return this.sections().filter((s) => s.section_key === 'offers');
   }
 
+  getAmenitiesSection(): any {
+    return this.sections().find((s) => s.section_key === 'amenities');
+  }
+
+  getAmenitiesItems(): any[] {
+    const sec = this.getAmenitiesSection();
+    return sec?.items || [];
+  }
+
   getGeneralSections(): any[] {
-    return this.sections().filter((s) => s.section_key !== 'offers' && s.section_key !== 'hero');
+    return this.sections().filter((s) => s.section_key !== 'offers' && s.section_key !== 'hero' && s.section_key !== 'amenities');
+  }
+
+  openAddServiceModal() {
+    this.editingServiceId = null;
+    this.serviceForm = {
+      title: '',
+      content: '',
+      icon_name: 'sparkles',
+      service_type: 'INCLUDED',
+      price_note: '',
+      is_active: true
+    };
+    this.showServiceModal = true;
+  }
+
+  openEditServiceModal(item: any) {
+    this.editingServiceId = item.id;
+    const isExtra = item.link_url && item.link_url !== 'INCLUDED';
+    this.serviceForm = {
+      title: item.title,
+      content: item.content || '',
+      icon_name: item.icon_name || 'sparkles',
+      service_type: isExtra ? 'EXTRA' : 'INCLUDED',
+      price_note: isExtra && item.link_url !== 'EXTRA' ? item.link_url : '',
+      is_active: item.is_active
+    };
+    this.showServiceModal = true;
+  }
+
+  saveServiceModal() {
+    const sec = this.getAmenitiesSection();
+    if (!sec) {
+      this.toast.error('Sección de amenidades no encontrada');
+      return;
+    }
+
+    if (!this.serviceForm.title.trim()) {
+      this.toast.error('Ingrese el nombre del servicio');
+      return;
+    }
+
+    this.isSavingService = true;
+    const linkUrl = this.serviceForm.service_type === 'INCLUDED'
+      ? 'INCLUDED'
+      : (this.serviceForm.price_note?.trim() || 'EXTRA');
+
+    const payload = {
+      section_id: sec.id,
+      title: this.serviceForm.title.trim(),
+      content: this.serviceForm.content.trim(),
+      icon_name: this.serviceForm.icon_name,
+      link_url: linkUrl,
+      is_active: this.serviceForm.is_active
+    };
+
+    if (this.editingServiceId) {
+      this.api.put(`cms/items/${this.editingServiceId}`, payload).subscribe({
+        next: () => {
+          this.toast.success('Servicio adicional actualizado');
+          this.showServiceModal = false;
+          this.isSavingService = false;
+          this.loadSections();
+        },
+        error: () => {
+          this.toast.error('Error al actualizar servicio');
+          this.isSavingService = false;
+        }
+      });
+    } else {
+      this.api.post('cms/items', payload).subscribe({
+        next: () => {
+          this.toast.success('Servicio adicional registrado');
+          this.showServiceModal = false;
+          this.isSavingService = false;
+          this.loadSections();
+        },
+        error: () => {
+          this.toast.error('Error al registrar servicio');
+          this.isSavingService = false;
+        }
+      });
+    }
+  }
+
+  syncPmsExtraCategories() {
+    this.api.get<any[]>('statuses/extra-categories').subscribe({
+      next: (cats) => {
+        const sec = this.getAmenitiesSection();
+        if (!sec) return;
+        const currentTitles = (sec.items || []).map((i: any) => i.title.toLowerCase());
+        let addedCount = 0;
+
+        cats.forEach((cat) => {
+          if (!currentTitles.some((t: string) => t.includes(cat.name.toLowerCase()))) {
+            addedCount++;
+            this.api.post('cms/items', {
+              section_id: sec.id,
+              title: cat.name,
+              content: `Servicio oficial disponible para su habitación: ${cat.name}.`,
+              icon_name: cat.icon_name || 'shopping-bag',
+              link_url: 'EXTRA',
+              is_active: true
+            }).subscribe();
+          }
+        });
+
+        setTimeout(() => {
+          this.loadSections();
+          if (addedCount > 0) {
+            this.toast.success(`Se importaron ${addedCount} categoría(s) del PMS`);
+          } else {
+            this.toast.info('Todas las categorías del PMS ya están presentes');
+          }
+        }, 600);
+      }
+    });
   }
 
   saveCoverPhoto() {
@@ -966,9 +1361,20 @@ export class CmsAdminComponent implements OnInit {
     }
   }
 
+  toggleItemStatus(item: any) {
+    const updatedStatus = !item.is_active;
+    this.api.put(`cms/items/${item.id}`, { is_active: updatedStatus }).subscribe({
+      next: () => {
+        this.toast.success(`Estado actualizado a ${updatedStatus ? 'Activo' : 'Inactivo'}`);
+        item.is_active = updatedStatus;
+      },
+      error: () => this.toast.error('Error al cambiar estado')
+    });
+  }
+
   async deleteItem(item: any) {
     const confirmed = await this.dialog.confirm({
-      title: 'Eliminar Oferta',
+      title: 'Eliminar Elemento',
       message: `¿Está seguro de eliminar '${item.title}'?`,
       confirmText: 'Eliminar',
       cancelText: 'Cancelar'
@@ -976,7 +1382,7 @@ export class CmsAdminComponent implements OnInit {
     if (confirmed) {
       this.api.delete(`cms/items/${item.id}`).subscribe({
         next: () => {
-          this.toast.success('Oferta eliminada');
+          this.toast.success('Elemento eliminado');
           this.loadSections();
         },
         error: () => this.toast.error('Error al eliminar elemento')

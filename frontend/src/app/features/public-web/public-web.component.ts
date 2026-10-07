@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -203,7 +203,7 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
       <section id="habitaciones" class="py-20 bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          <div class="text-center max-w-2xl mx-auto mb-14">
+          <div class="text-center max-w-2xl mx-auto mb-10">
             <h2 class="text-xs font-bold uppercase tracking-widest text-amber-600 mb-2">Alojamiento de Primer Nivel</h2>
             <h3 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">Nuestras Habitaciones & Suites</h3>
             <p class="mt-3 text-sm text-slate-600">
@@ -211,9 +211,34 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
             </p>
           </div>
 
+          <!-- CATEGORY FILTER CHIPS -->
+          <div class="flex flex-wrap items-center justify-center gap-2 mb-10">
+            <button
+              type="button"
+              (click)="selectedCategoryFilter.set(null)"
+              class="px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              [ngClass]="selectedCategoryFilter() === null ? 'bg-slate-900 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'"
+            >
+              Todas las Categorías ({{ roomTypes().length }})
+            </button>
+
+            <button
+              type="button"
+              *ngFor="let cat of roomTypes()"
+              (click)="selectedCategoryFilter.set(cat.id)"
+              class="px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2"
+              [ngClass]="selectedCategoryFilter() === cat.id ? 'bg-slate-900 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'"
+            >
+              <span>{{ cat.name }}</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded" [ngClass]="selectedCategoryFilter() === cat.id ? 'bg-slate-800 text-amber-400' : 'bg-slate-100 text-slate-800'">
+                S/. {{ cat.base_price }}
+              </span>
+            </button>
+          </div>
+
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div
-              *ngFor="let type of roomTypes()"
+              *ngFor="let type of filteredRoomTypes()"
               class="bg-white rounded-3xl border border-slate-100 shadow-2xs hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group"
             >
               <!-- Photo Container with interactive Gallery trigger -->
@@ -245,8 +270,13 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
               <!-- Body -->
               <div class="p-6 flex-1 flex flex-col justify-between">
                 <div>
-                  <div class="text-[11px] font-bold uppercase tracking-wider text-amber-600 mb-1">
-                    {{ type.bed_summary || '1 Cama King/Queen' }}
+                  <div class="flex items-center gap-2 mb-1.5">
+                    <span class="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-900 font-mono text-[10px] font-bold">
+                      {{ type.code }}
+                    </span>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-amber-600">
+                      {{ type.bed_summary || '1 Cama King/Queen' }}
+                    </span>
                   </div>
 
                   <h4 class="text-lg font-bold text-slate-900 group-hover:text-amber-600 transition-colors mb-2">
@@ -352,48 +382,59 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
         </div>
       </section>
 
-      <!-- HOTEL AMENITIES SECTION -->
+      <!-- HOTEL SERVICES & AMENITIES SECTION (LOADED DYNAMICALLY FROM CMS & PMS) -->
       <section id="servicios" class="py-20 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center max-w-2xl mx-auto mb-14">
-            <h2 class="text-xs font-bold uppercase tracking-widest text-amber-600 mb-2">Comodidades Destacadas</h2>
-            <h3 class="text-3xl font-black text-slate-900 tracking-tight">Servicios Incluidos en tu Estadía</h3>
+            <h2 class="text-xs font-bold uppercase tracking-widest text-amber-600 mb-2">Comodidades & Consumos</h2>
+            <h3 class="text-3xl font-black text-slate-900 tracking-tight">
+              {{ servicesSectionTitle() }}
+            </h3>
             <p class="mt-3 text-sm text-slate-600">
-              Diseñamos cada ambiente pensando en los viajeros de turismo y negocios más exigentes.
+              {{ servicesSectionSubtitle() }}
             </p>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="p-6 rounded-3xl bg-slate-50 border border-slate-100 hover:border-amber-200 hover:shadow-md transition-all">
-              <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
-                <app-icon name="wifi" [size]="24"></app-icon>
-              </div>
-              <h4 class="text-sm font-bold text-slate-900 mb-1">WiFi de Fibra Óptica</h4>
-              <p class="text-xs text-slate-600 leading-relaxed">Conexión de alta velocidad en todas las habitaciones y áreas comunes para streaming o trabajo.</p>
-            </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              *ngFor="let service of services()"
+              class="p-6 rounded-3xl bg-slate-50 border border-slate-100 hover:border-amber-200 hover:shadow-lg transition-all flex flex-col justify-between group"
+            >
+              <div>
+                <div class="flex items-start justify-between gap-3 mb-4">
+                  <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors flex items-center justify-center font-bold">
+                    <app-icon [name]="service.icon_name || 'sparkles'" [size]="24"></app-icon>
+                  </div>
 
-            <div class="p-6 rounded-3xl bg-slate-50 border border-slate-100 hover:border-amber-200 hover:shadow-md transition-all">
-              <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
-                <app-icon name="clock" [size]="24"></app-icon>
-              </div>
-              <h4 class="text-sm font-bold text-slate-900 mb-1">Recepción & Asistencia 24/7</h4>
-              <p class="text-xs text-slate-600 leading-relaxed">Mostrador siempre disponible para check-in nocturnos, orientación turística y custodia.</p>
-            </div>
+                  <span
+                    class="px-2.5 py-1 rounded-xl text-[10px] font-bold"
+                    [ngClass]="service.link_url === 'INCLUDED' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-900 border border-amber-200'"
+                  >
+                    {{ service.link_url === 'INCLUDED' ? 'Servicio Incluido' : (service.link_url === 'EXTRA' ? 'Consumo / Cargo Adicional' : service.link_url) }}
+                  </span>
+                </div>
 
-            <div class="p-6 rounded-3xl bg-slate-50 border border-slate-100 hover:border-amber-200 hover:shadow-md transition-all">
-              <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
-                <app-icon name="sparkles" [size]="24"></app-icon>
-              </div>
-              <h4 class="text-sm font-bold text-slate-900 mb-1">Gobernanza Rigurosa</h4>
-              <p class="text-xs text-slate-600 leading-relaxed">Protocolos de limpieza con recambio diario de toallas, sábanas de algodón y desinfección.</p>
-            </div>
+                <h4 class="text-base font-bold text-slate-900 mb-2 group-hover:text-amber-600 transition-colors">
+                  {{ service.title }}
+                </h4>
 
-            <div class="p-6 rounded-3xl bg-slate-50 border border-slate-100 hover:border-amber-200 hover:shadow-md transition-all">
-              <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
-                <app-icon name="shield" [size]="24"></app-icon>
+                <p class="text-xs text-slate-600 leading-relaxed mb-6">
+                  {{ service.content || 'Servicio de alta calidad a disposición de los huéspedes.' }}
+                </p>
               </div>
-              <h4 class="text-sm font-bold text-slate-900 mb-1">Seguridad & Custodia</h4>
-              <p class="text-xs text-slate-600 leading-relaxed">Monitoreo permanente y servicio de resguardo de equipaje sin costo adicional tras el check-out.</p>
+
+              <div class="pt-4 border-t border-slate-200/60 flex items-center justify-between">
+                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Atención Directa</span>
+
+                <button
+                  type="button"
+                  (click)="requestServiceViaWa(service)"
+                  class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <app-icon name="phone" [size]="13" class="text-emerald-400"></app-icon>
+                  Consultar
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -565,7 +606,21 @@ export class PublicWebComponent implements OnInit {
   hotelInfo = signal<any>(null);
   roomTypes = signal<any[]>([]);
 
+  selectedCategoryFilter = signal<number | null>(null);
+  filteredRoomTypes = computed(() => {
+    const filter = this.selectedCategoryFilter();
+    const all = this.roomTypes();
+    if (!filter) return all;
+    return all.filter((t) => t.id === filter);
+  });
+
   offers = signal<any[]>([]);
+
+  services = signal<any[]>([]);
+  servicesSectionTitle = signal<string>('Servicios & Comodidades del Hotel');
+  servicesSectionSubtitle = signal<string>(
+    'Disfrute de una estancia inigualable con nuestros servicios premium incluidos y consumos adicionales gestionados con total comodidad.'
+  );
 
   // Hero banner customizations from CMS
   heroCoverImage = signal<string>('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1600&q=80');
@@ -609,6 +664,15 @@ export class PublicWebComponent implements OnInit {
         const offersSec = sections.find((s) => s.section_key === 'offers');
         if (offersSec && offersSec.items) {
           this.offers.set(offersSec.items.filter((i: any) => i.is_active));
+        }
+
+        const amenitiesSec = sections.find((s) => s.section_key === 'amenities');
+        if (amenitiesSec) {
+          if (amenitiesSec.title) this.servicesSectionTitle.set(amenitiesSec.title);
+          if (amenitiesSec.subtitle) this.servicesSectionSubtitle.set(amenitiesSec.subtitle);
+          if (amenitiesSec.items) {
+            this.services.set(amenitiesSec.items.filter((i: any) => i.is_active));
+          }
         }
 
         const heroSec = sections.find((s) => s.section_key === 'hero');
@@ -735,6 +799,15 @@ export class PublicWebComponent implements OnInit {
     const cleanWa = wa.replace(/[^0-9]/g, '');
     const msg = encodeURIComponent(
       `Hola, deseo reservar la habitación: ${type.name} (S/. ${type.base_price}/noche). ¿Tienen disponibilidad?`
+    );
+    window.open(`https://wa.me/${cleanWa}?text=${msg}`, '_blank');
+  }
+
+  requestServiceViaWa(service: any) {
+    const wa = this.hotelInfo()?.whatsapp || '+51984123456';
+    const cleanWa = wa.replace(/[^0-9]/g, '');
+    const msg = encodeURIComponent(
+      `Hola ${this.hotelInfo()?.hotel_name || 'hotelSJB'}, deseo consultar sobre el servicio: "${service.title}". ¿Me brindan más información?`
     );
     window.open(`https://wa.me/${cleanWa}?text=${msg}`, '_blank');
   }

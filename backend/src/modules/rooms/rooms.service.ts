@@ -24,6 +24,7 @@ export class RoomsService {
     return this.roomTypeRepo.find({
       where: { is_active: true },
       relations: { rooms: true },
+      order: { id: 'ASC' },
     });
   }
 
@@ -37,7 +38,10 @@ export class RoomsService {
   }
 
   async createRoomType(data: Partial<RoomType>) {
-    const type = this.roomTypeRepo.create(data);
+    const type = this.roomTypeRepo.create({
+      ...data,
+      is_active: true,
+    });
     return this.roomTypeRepo.save(type);
   }
 
