@@ -65,6 +65,15 @@ export class HotelSettings {
   @Column({ type: 'text', nullable: true })
   cancellation_policy: string;
 
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  latitude: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  longitude: number;
+
+  @Column({ type: 'int', default: 16 })
+  map_zoom: number;
+
   @CreateDateColumn()
   created_at: Date;
 

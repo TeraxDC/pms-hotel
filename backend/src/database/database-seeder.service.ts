@@ -347,9 +347,25 @@ export class DatabaseSeederService implements OnApplicationBootstrap {
   private async ensureHotelCurrency() {
     const hotel = await this.hotelSettingsRepo.findOne({ where: { id: 1 } });
     if (hotel) {
+      let changed = false;
       if (hotel.currency_symbol !== 'S/.' || hotel.primary_currency !== 'PEN') {
         hotel.currency_symbol = 'S/.';
         hotel.primary_currency = 'PEN';
+        changed = true;
+      }
+      if (hotel.latitude === null || hotel.latitude === undefined) {
+        hotel.latitude = -13.518600;
+        changed = true;
+      }
+      if (hotel.longitude === null || hotel.longitude === undefined) {
+        hotel.longitude = -71.977200;
+        changed = true;
+      }
+      if (!hotel.map_zoom) {
+        hotel.map_zoom = 16;
+        changed = true;
+      }
+      if (changed) {
         await this.hotelSettingsRepo.save(hotel);
       }
     }

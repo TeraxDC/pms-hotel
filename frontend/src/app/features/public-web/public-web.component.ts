@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../shared/components/toast/toast.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
@@ -73,7 +74,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
             <a href="#ofertas" class="hover:text-amber-600 transition-colors">Ofertas & Promos</a>
             <a href="#servicios" class="hover:text-amber-600 transition-colors">Servicios</a>
             <a href="#app" class="hover:text-amber-600 transition-colors">App Móvil</a>
-            <a href="#contacto" class="hover:text-amber-600 transition-colors">Ubicación</a>
+            <a href="#ubicacion" class="hover:text-amber-600 transition-colors">Ubicación</a>
           </div>
 
           <!-- Direct CTA -->
@@ -489,6 +490,134 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
         </div>
       </section>
 
+      <!-- INTERACTIVE MAP & LOCATION SECTION (FROM CMS GPS COORDINATES) -->
+      <section id="ubicacion" class="py-20 bg-white text-slate-800 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <!-- Header -->
+          <div class="text-center max-w-3xl mx-auto mb-14">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-700 font-extrabold text-xs tracking-wider uppercase mb-3 border border-amber-500/20">
+              <app-icon name="map-pin" [size]="14"></app-icon>
+              {{ locationSectionBadge() }}
+            </div>
+            <h2 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              {{ locationSectionTitle() }}
+            </h2>
+            <p class="mt-3 text-slate-500 text-sm sm:text-base leading-relaxed">
+              {{ locationSectionSubtitle() }}
+            </p>
+          </div>
+
+          <!-- Main Grid: Hotel GPS Info & Interactive Map -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            
+            <!-- Column 1: Info & Directions Card (lg:col-span-5) -->
+            <div class="lg:col-span-5 bg-slate-900 text-white rounded-3xl p-7 sm:p-8 flex flex-col justify-between border border-slate-800 shadow-xl relative overflow-hidden">
+              <div class="absolute -right-12 -top-12 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              <div class="space-y-6 relative z-10">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-md shadow-amber-500/20 shrink-0">
+                    <app-icon name="building" [size]="24"></app-icon>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-black text-white tracking-tight leading-tight">
+                      {{ hotelInfo()?.hotel_name || 'hotelSJB' }}
+                    </h3>
+                    <p class="text-xs text-amber-400 font-bold uppercase tracking-wider">
+                      {{ hotelInfo()?.city || 'Cusco' }}, {{ hotelInfo()?.country || 'Perú' }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="space-y-3.5 pt-2">
+                  <!-- Dirección Física -->
+                  <div class="flex items-start gap-3.5 p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                    <div class="p-2 rounded-xl bg-amber-500/10 text-amber-400 shrink-0 mt-0.5">
+                      <app-icon name="map-pin" [size]="16"></app-icon>
+                    </div>
+                    <div>
+                      <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Dirección Física</span>
+                      <p class="text-xs font-semibold text-slate-200 mt-0.5 leading-snug">
+                        {{ hotelInfo()?.address || 'Av. Principal 456, Centro Histórico' }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Coordenadas GPS -->
+                  <div class="flex items-start gap-3.5 p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                    <div class="p-2 rounded-xl bg-blue-500/10 text-blue-400 shrink-0 mt-0.5">
+                      <app-icon name="info" [size]="16"></app-icon>
+                    </div>
+                    <div>
+                      <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Coordenadas GPS</span>
+                      <p class="text-xs font-mono font-bold text-blue-300 mt-0.5">
+                        {{ hotelLatitude() }}, {{ hotelLongitude() }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Horario & Recepción -->
+                  <div class="flex items-start gap-3.5 p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                    <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 shrink-0 mt-0.5">
+                      <app-icon name="clock" [size]="16"></app-icon>
+                    </div>
+                    <div>
+                      <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Horarios de Estadía</span>
+                      <p class="text-xs text-slate-200 mt-0.5">
+                        Check-in: <strong class="text-white">{{ hotelInfo()?.check_in_time || '14:00' }} hrs</strong> | Check-out: <strong class="text-white">{{ hotelInfo()?.check_out_time || '11:00' }} hrs</strong>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action buttons -->
+              <div class="pt-6 border-t border-slate-800 space-y-3 relative z-10 mt-6">
+                <button
+                  type="button"
+                  (click)="openInGoogleMaps()"
+                  class="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <app-icon name="map-pin" [size]="16"></app-icon>
+                  Abrir Ruta en Google Maps
+                </button>
+
+                <button
+                  type="button"
+                  (click)="askLocationOnWhatsApp()"
+                  class="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors border border-slate-700 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <app-icon name="phone" [size]="16" class="text-emerald-400"></app-icon>
+                  Consultar Cómo Llegar por WhatsApp
+                </button>
+              </div>
+
+            </div>
+
+            <!-- Column 2: Embedded Google Map (lg:col-span-7) -->
+            <div class="lg:col-span-7 rounded-3xl overflow-hidden border border-slate-200 shadow-xl bg-slate-100 min-h-[420px] lg:min-h-full flex flex-col relative">
+              <iframe
+                *ngIf="safeMapUrl()"
+                [src]="safeMapUrl()!"
+                class="w-full flex-1 min-h-[420px] border-0"
+                loading="lazy"
+                allowfullscreen
+                referrerpolicy="no-referrer-when-downgrade"
+                title="Ubicación del Hotel en Google Maps"
+              ></iframe>
+
+              <div *ngIf="!safeMapUrl()" class="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
+                <app-icon name="map-pin" [size]="36" class="mb-2 text-slate-300"></app-icon>
+                <p class="text-xs font-semibold">Cargando mapa interactivo del hotel...</p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
       <!-- FOOTER -->
       <footer id="contacto" class="bg-slate-950 text-slate-400 py-16 border-t border-slate-800/80 text-xs mt-auto">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
@@ -624,9 +753,41 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 export class PublicWebComponent implements OnInit {
   private api = inject(ApiService);
   private toast = inject(ToastService);
+  private sanitizer = inject(DomSanitizer);
 
   hotelInfo = signal<any>(null);
   roomTypes = signal<any[]>([]);
+
+  // Location and interactive map state
+  locationSectionBadge = signal<string>('Ubicación Estratégica');
+  locationSectionTitle = signal<string>('Encuéntranos en el Corazón de la Ciudad');
+  locationSectionSubtitle = signal<string>(
+    'Fácil acceso, entorno seguro y cerca de los principales atractivos turísticos, comerciales y gastronómicos.'
+  );
+
+  hotelLatitude = computed(() => {
+    const lat = this.hotelInfo()?.latitude;
+    return lat !== undefined && lat !== null ? Number(lat) : -13.518600;
+  });
+
+  hotelLongitude = computed(() => {
+    const lng = this.hotelInfo()?.longitude;
+    return lng !== undefined && lng !== null ? Number(lng) : -71.977200;
+  });
+
+  hotelMapZoom = computed(() => {
+    const z = this.hotelInfo()?.map_zoom;
+    return z ? Number(z) : 16;
+  });
+
+  safeMapUrl = computed<SafeResourceUrl | null>(() => {
+    const lat = this.hotelLatitude();
+    const lng = this.hotelLongitude();
+    const zoom = this.hotelMapZoom();
+    if (isNaN(lat) || isNaN(lng)) return null;
+    const url = `https://maps.google.com/maps?q=${lat},${lng}&hl=es&z=${zoom}&output=embed`;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  });
 
   selectedCategoryFilter = signal<number | null>(null);
   filteredRoomTypes = computed(() => {
@@ -702,6 +863,12 @@ export class PublicWebComponent implements OnInit {
           if (heroSec.items && heroSec.items.length > 0 && heroSec.items[0].image_url) {
             this.heroCoverImage.set(heroSec.items[0].image_url);
           }
+        }
+
+        const contactSec = sections.find((s) => s.section_key === 'contact');
+        if (contactSec) {
+          if (contactSec.title) this.locationSectionTitle.set(contactSec.title);
+          if (contactSec.subtitle) this.locationSectionSubtitle.set(contactSec.subtitle);
         }
       }
     });
@@ -842,6 +1009,23 @@ export class PublicWebComponent implements OnInit {
     const cleanWa = wa.replace(/[^0-9]/g, '');
     const msg = encodeURIComponent(
       `Hola ${this.hotelInfo()?.hotel_name || 'hotelSJB'}, deseo consultar sobre el servicio: "${service.title}". ¿Me brindan más información?`
+    );
+    window.open(`https://wa.me/${cleanWa}?text=${msg}`, '_blank');
+  }
+
+  openInGoogleMaps() {
+    const lat = this.hotelLatitude();
+    const lng = this.hotelLongitude();
+    window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+  }
+
+  askLocationOnWhatsApp() {
+    const wa = this.hotelInfo()?.whatsapp || '+51984123456';
+    const cleanWa = wa.replace(/[^0-9]/g, '');
+    const hotelName = this.hotelInfo()?.hotel_name || 'hotelSJB';
+    const address = this.hotelInfo()?.address || '';
+    const msg = encodeURIComponent(
+      `Hola ${hotelName}, deseo consultar indicaciones de cómo llegar al hotel (${address}). ¿Me pueden orientar?`
     );
     window.open(`https://wa.me/${cleanWa}?text=${msg}`, '_blank');
   }

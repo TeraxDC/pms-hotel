@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../shared/components/toast/toast.service';
 import { DialogService } from '../../../shared/components/dialog/dialog.service';
@@ -76,6 +77,16 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
         >
           <app-icon name="shopping-bag" [size]="15" class="text-amber-400"></app-icon>
           Servicios Adicionales (Amenities & Consumos)
+        </button>
+
+        <button
+          type="button"
+          (click)="activeTab.set('location')"
+          [ngClass]="activeTab() === 'location' ? 'bg-slate-900 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'"
+          class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+        >
+          <app-icon name="map-pin" [size]="15" class="text-amber-400"></app-icon>
+          Ubicación & Mapa (Coordenadas)
         </button>
 
         <button
@@ -588,6 +599,243 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       </div>
 
       <!-- ======================================================== -->
+      <!-- TAB: UBICACIÓN & MAPA INTERACTIVO (COORDENADAS GPS)      -->
+      <!-- ======================================================== -->
+      <div *ngIf="activeTab() === 'location'" class="space-y-6">
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-2xs p-6 space-y-6">
+          
+          <!-- Encabezado de la Sección -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <app-icon name="map-pin" [size]="18" class="text-amber-600"></app-icon>
+                Configuración de Coordenadas Geográficas & Mapa Interactivo
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">
+                Ingrese las coordenadas de latitud y longitud para ubicar el hotel en el mapa interactivo y habilitar la navegación para huéspedes en la página web informativa.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              (click)="saveLocation()"
+              [disabled]="isSavingLocation"
+              class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-slate-950 text-xs font-black shadow-md shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+            >
+              <app-icon *ngIf="!isSavingLocation" name="save" [size]="16" class="text-slate-950"></app-icon>
+              <span *ngIf="isSavingLocation">Guardando mapa...</span>
+              <span *ngIf="!isSavingLocation">Guardar Ubicación & Mapa</span>
+            </button>
+          </div>
+
+          <!-- Grid: Formulario a la izquierda y Previsualización a la derecha -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Columna Izquierda: Formulario de Parámetros (lg:col-span-6) -->
+            <div class="lg:col-span-6 space-y-4">
+              
+              <div class="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl text-xs text-amber-950 flex items-start gap-3">
+                <app-icon name="info" [size]="18" class="text-amber-600 shrink-0 mt-0.5"></app-icon>
+                <div class="space-y-1">
+                  <p class="font-bold">¿Cómo obtener las coordenadas exactas de su hotel?</p>
+                  <p class="text-[11px] text-amber-900 leading-relaxed">
+                    1. Abra <strong>Google Maps</strong> y localice su hotel.<br/>
+                    2. Haga clic derecho sobre la ubicación del edificio.<br/>
+                    3. Haga clic sobre las coordenadas que aparecen al inicio para copiarlas y péguelas en los campos de Latitud y Longitud.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Coordenadas GPS -->
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Latitud GPS *</span>
+                    <span class="text-[10px] text-slate-400 lowercase font-mono">-90 a +90</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    [(ngModel)]="locationForm.latitude"
+                    (ngModelChange)="updatePreviewUrl()"
+                    placeholder="-13.518600"
+                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Longitud GPS *</span>
+                    <span class="text-[10px] text-slate-400 lowercase font-mono">-180 a +180</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    [(ngModel)]="locationForm.longitude"
+                    (ngModelChange)="updatePreviewUrl()"
+                    placeholder="-71.977200"
+                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              <!-- Nivel de Zoom -->
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Nivel de Acercamiento (Zoom del Mapa)
+                  </label>
+                  <span class="text-xs font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                    {{ locationForm.map_zoom }}x ({{ getZoomDescription(locationForm.map_zoom) }})
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="12"
+                  max="19"
+                  step="1"
+                  [(ngModel)]="locationForm.map_zoom"
+                  (ngModelChange)="updatePreviewUrl()"
+                  class="w-full accent-amber-500 cursor-pointer"
+                />
+                <div class="flex justify-between text-[10px] text-slate-400 font-mono mt-1">
+                  <span>12x (Ciudad)</span>
+                  <span>15x (Barrio)</span>
+                  <span>16x (Calles/Recomendado)</span>
+                  <span>19x (Detalle Edificio)</span>
+                </div>
+              </div>
+
+              <!-- Dirección Mostrada -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Dirección o Referencia Mostrada
+                </label>
+                <input
+                  type="text"
+                  [(ngModel)]="locationForm.address"
+                  placeholder="Ej: Av. El Sol 345, Cercado, Cusco"
+                  class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+                />
+              </div>
+
+              <!-- Título de Sección -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Título de la Sección en la Web
+                </label>
+                <input
+                  type="text"
+                  [(ngModel)]="locationForm.title"
+                  placeholder="Ej: Encuéntranos en el Corazón de la Ciudad"
+                  class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+                />
+              </div>
+
+              <!-- Subtítulo de Sección -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Subtítulo / Bajada Descriptiva
+                </label>
+                <textarea
+                  [(ngModel)]="locationForm.subtitle"
+                  rows="2"
+                  placeholder="Ej: Ubicación céntrica y privilegiada, a pocos minutos de la Plaza de Armas y con fácil acceso a los principales atractivos."
+                  class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+                ></textarea>
+              </div>
+
+              <!-- Presets Rápidos -->
+              <div class="pt-2">
+                <span class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Atajos Rápidos de Coordenadas:
+                </span>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    (click)="setPresetLocation(-13.518600, -71.977200, 16)"
+                    class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <app-icon name="map-pin" [size]="12" class="text-amber-600"></app-icon>
+                    Centro Histórico Cusco
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="setPresetLocation(-13.516000, -71.978500, 17)"
+                    class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <app-icon name="map-pin" [size]="12" class="text-amber-600"></app-icon>
+                    Plaza de Armas Cusco
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="testInGoogleMaps()"
+                    class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <app-icon name="chevron-right" [size]="12" class="text-blue-600"></app-icon>
+                    Abrir en Google Maps
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Columna Derecha: Previsualización en Vivo del Mapa (lg:col-span-6) -->
+            <div class="lg:col-span-6 space-y-4">
+              
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <app-icon name="eye" [size]="14" class="text-amber-600"></app-icon>
+                  Previsualización en Vivo del Mapa
+                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                  Respuesta Inmediata
+                </span>
+              </div>
+
+              <!-- Frame del Mapa -->
+              <div class="rounded-2xl border border-slate-200 overflow-hidden shadow-md bg-slate-100 relative min-h-[380px] flex flex-col">
+                <iframe
+                  *ngIf="safeMapUrl()"
+                  [src]="safeMapUrl()!"
+                  class="w-full h-[380px] border-0"
+                  loading="lazy"
+                  allowfullscreen
+                  referrerpolicy="no-referrer-when-downgrade"
+                  title="Vista Previa de Mapa CMS"
+                ></iframe>
+
+                <div *ngIf="!safeMapUrl()" class="h-[380px] flex items-center justify-center text-slate-400 text-xs">
+                  Ingrese coordenadas válidas para previsualizar el mapa
+                </div>
+              </div>
+
+              <!-- Tarjeta de Coordenadas en Vivo -->
+              <div class="p-4 bg-slate-900 text-slate-300 rounded-2xl border border-slate-800 text-xs space-y-2">
+                <div class="flex items-center justify-between text-white font-bold">
+                  <span class="flex items-center gap-1.5">
+                    <app-icon name="map-pin" [size]="14" class="text-amber-400"></app-icon>
+                    Punto GPS Fijado
+                  </span>
+                  <span class="font-mono text-amber-400 text-[11px]">
+                    {{ locationForm.latitude }}, {{ locationForm.longitude }}
+                  </span>
+                </div>
+                <p class="text-slate-400 text-[11px]">
+                  {{ locationForm.address || 'Sin dirección ingresada' }}
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
       <!-- TAB 5: OTRAS SECCIONES INFORMATIVAS                      -->
       <!-- ======================================================== -->
       <div *ngIf="activeTab() === 'sections'" class="space-y-6">
@@ -964,11 +1212,25 @@ export class CmsAdminComponent implements OnInit {
   private api = inject(ApiService);
   private toast = inject(ToastService);
   private dialog = inject(DialogService);
+  private sanitizer = inject(DomSanitizer);
 
-  activeTab = signal<'cover' | 'rooms' | 'offers' | 'services' | 'sections'>('cover');
+  activeTab = signal<'cover' | 'rooms' | 'offers' | 'services' | 'location' | 'sections'>('cover');
 
   sections = signal<any[]>([]);
   roomTypes = signal<any[]>([]);
+
+  // Location and Map state
+  isSavingLocation = false;
+  safeMapUrl = signal<SafeResourceUrl | null>(null);
+  contactSectionId: number | null = null;
+  locationForm = {
+    latitude: -13.518600,
+    longitude: -71.977200,
+    map_zoom: 16,
+    address: '',
+    title: 'Encuéntranos en el Corazón de la Ciudad',
+    subtitle: 'Ubicación céntrica y privilegiada, a pocos minutos de la Plaza de Armas y con fácil acceso a los principales atractivos.'
+  };
 
   // Default and presets for Cover Photo
   defaultCover = 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1600&q=80';
@@ -1027,6 +1289,7 @@ export class CmsAdminComponent implements OnInit {
   ngOnInit() {
     this.loadSections();
     this.loadRoomTypes();
+    this.loadHotelLocation();
   }
 
   loadSections() {
@@ -1040,8 +1303,136 @@ export class CmsAdminComponent implements OnInit {
           const coverItem = hero.items?.find((i: any) => i.image_url) || hero.items?.[0];
           this.coverForm.image_url = coverItem?.image_url || this.defaultCover;
         }
+
+        const contact = data.find((s) => s.section_key === 'contact');
+        if (contact) {
+          this.contactSectionId = contact.id;
+          if (contact.title) this.locationForm.title = contact.title;
+          if (contact.subtitle) this.locationForm.subtitle = contact.subtitle;
+        }
       },
       error: () => this.toast.error('No se pudo cargar el contenido del CMS')
+    });
+  }
+
+  loadHotelLocation() {
+    this.api.get<any>('hotel/settings').subscribe({
+      next: (settings) => {
+        if (settings) {
+          if (settings.latitude !== undefined && settings.latitude !== null) {
+            this.locationForm.latitude = Number(settings.latitude);
+          }
+          if (settings.longitude !== undefined && settings.longitude !== null) {
+            this.locationForm.longitude = Number(settings.longitude);
+          }
+          if (settings.map_zoom !== undefined && settings.map_zoom !== null) {
+            this.locationForm.map_zoom = Number(settings.map_zoom);
+          }
+          if (settings.address) {
+            this.locationForm.address = settings.address;
+          }
+        }
+        this.updatePreviewUrl();
+      },
+      error: () => {
+        this.updatePreviewUrl();
+      }
+    });
+  }
+
+  updatePreviewUrl() {
+    const lat = Number(this.locationForm.latitude);
+    const lng = Number(this.locationForm.longitude);
+    const zoom = Number(this.locationForm.map_zoom) || 16;
+    if (isNaN(lat) || isNaN(lng)) {
+      this.safeMapUrl.set(null);
+      return;
+    }
+    const url = `https://maps.google.com/maps?q=${lat},${lng}&hl=es&z=${zoom}&output=embed`;
+    this.safeMapUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
+  }
+
+  getZoomDescription(zoom: number): string {
+    const z = Number(zoom);
+    if (z <= 13) return 'Vista Ciudad / Amplia';
+    if (z <= 15) return 'Vista Distrito / Barrio';
+    if (z <= 17) return 'Calles & Avenidas (Recomendado)';
+    return 'Detalle Máximo de Cuadra';
+  }
+
+  setPresetLocation(lat: number, lng: number, zoom: number) {
+    this.locationForm.latitude = lat;
+    this.locationForm.longitude = lng;
+    this.locationForm.map_zoom = zoom;
+    this.updatePreviewUrl();
+    this.toast.info('Coordenadas aplicadas a la vista previa');
+  }
+
+  testInGoogleMaps() {
+    const lat = Number(this.locationForm.latitude);
+    const lng = Number(this.locationForm.longitude);
+    if (isNaN(lat) || isNaN(lng)) {
+      this.toast.error('Ingrese coordenadas válidas');
+      return;
+    }
+    window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+  }
+
+  saveLocation() {
+    const lat = Number(this.locationForm.latitude);
+    const lng = Number(this.locationForm.longitude);
+    const zoom = Number(this.locationForm.map_zoom) || 16;
+
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      this.toast.error('Latitud inválida (debe estar entre -90 y 90)');
+      return;
+    }
+
+    if (isNaN(lng) || lng < -180 || lng > 180) {
+      this.toast.error('Longitud inválida (debe estar entre -180 y 180)');
+      return;
+    }
+
+    this.isSavingLocation = true;
+
+    // 1. Guardar coordenadas y dirección en hotel/settings
+    const hotelPayload: any = {
+      latitude: lat,
+      longitude: lng,
+      map_zoom: zoom
+    };
+    if (this.locationForm.address?.trim()) {
+      hotelPayload.address = this.locationForm.address.trim();
+    }
+
+    this.api.put('hotel/settings', hotelPayload).subscribe({
+      next: () => {
+        // 2. Si existe la sección 'contact' en el CMS, guardar también el título y subtítulo
+        const contactSec = this.sections().find((s) => s.section_key === 'contact') || (this.contactSectionId ? { id: this.contactSectionId } : null);
+        if (contactSec) {
+          this.api.put(`cms/sections/${contactSec.id}`, {
+            title: this.locationForm.title,
+            subtitle: this.locationForm.subtitle
+          }).subscribe({
+            next: () => {
+              this.isSavingLocation = false;
+              this.toast.success('Ubicación y mapa guardados exitosamente');
+              this.loadSections();
+            },
+            error: () => {
+              this.isSavingLocation = false;
+              this.toast.success('Coordenadas guardadas en el hotel');
+            }
+          });
+        } else {
+          this.isSavingLocation = false;
+          this.toast.success('Coordenadas del mapa guardadas exitosamente');
+        }
+      },
+      error: () => {
+        this.isSavingLocation = false;
+        this.toast.error('Error al guardar las coordenadas del mapa');
+      }
     });
   }
 

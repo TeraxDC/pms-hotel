@@ -238,6 +238,40 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
               />
             </div>
           </div>
+
+          <div class="grid grid-cols-3 gap-3 pt-1">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">Latitud GPS</label>
+              <input
+                type="number"
+                step="0.000001"
+                [(ngModel)]="hotelForm.latitude"
+                placeholder="-13.518600"
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium text-slate-800 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">Longitud GPS</label>
+              <input
+                type="number"
+                step="0.000001"
+                [(ngModel)]="hotelForm.longitude"
+                placeholder="-71.977200"
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium text-slate-800 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">Zoom del Mapa</label>
+              <input
+                type="number"
+                min="10"
+                max="19"
+                [(ngModel)]="hotelForm.map_zoom"
+                placeholder="16"
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium text-slate-800 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- CARD 4: HORARIOS Y POLÍTICAS OPERATIVAS -->
@@ -376,7 +410,10 @@ export class HotelInfoComponent implements OnInit {
     tax_percentage: 18.0,
     check_in_time: '14:00',
     check_out_time: '11:00',
-    cancellation_policy: ''
+    cancellation_policy: '',
+    latitude: -13.518600,
+    longitude: -71.977200,
+    map_zoom: 16
   };
 
   ngOnInit() {
@@ -392,7 +429,10 @@ export class HotelInfoComponent implements OnInit {
             ...res,
             primary_currency: res.primary_currency || 'PEN',
             currency_symbol: res.currency_symbol || 'S/.',
-            tax_percentage: Number(res.tax_percentage || 18.0)
+            tax_percentage: Number(res.tax_percentage || 18.0),
+            latitude: res.latitude !== undefined && res.latitude !== null ? Number(res.latitude) : -13.518600,
+            longitude: res.longitude !== undefined && res.longitude !== null ? Number(res.longitude) : -71.977200,
+            map_zoom: res.map_zoom ? Number(res.map_zoom) : 16
           };
         }
       },

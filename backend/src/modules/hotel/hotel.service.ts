@@ -34,8 +34,21 @@ export class HotelService {
         check_out_time: '11:00',
         is_configured: true,
         cancellation_policy: 'Cancelación gratuita hasta 24 horas antes del Check-In.',
+        latitude: -13.518600,
+        longitude: -71.977200,
+        map_zoom: 16,
       });
       settings = await this.hotelRepo.save(settings);
+    } else {
+      if (settings.latitude === null || settings.latitude === undefined) {
+        settings.latitude = -13.518600;
+      }
+      if (settings.longitude === null || settings.longitude === undefined) {
+        settings.longitude = -71.977200;
+      }
+      if (!settings.map_zoom) {
+        settings.map_zoom = 16;
+      }
     }
     return settings;
   }
@@ -62,6 +75,9 @@ export class HotelService {
     if (data.check_in_time !== undefined) settings.check_in_time = data.check_in_time;
     if (data.check_out_time !== undefined) settings.check_out_time = data.check_out_time;
     if (data.cancellation_policy !== undefined) settings.cancellation_policy = data.cancellation_policy;
+    if (data.latitude !== undefined) settings.latitude = Number(data.latitude);
+    if (data.longitude !== undefined) settings.longitude = Number(data.longitude);
+    if (data.map_zoom !== undefined) settings.map_zoom = Number(data.map_zoom);
     settings.is_configured = true;
 
     return this.hotelRepo.save(settings);

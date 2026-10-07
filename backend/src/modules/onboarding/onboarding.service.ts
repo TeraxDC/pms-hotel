@@ -52,6 +52,9 @@ export class OnboardingService {
         currency_symbol: hotel.currency_symbol,
         check_in_time: hotel.check_in_time,
         check_out_time: hotel.check_out_time,
+        latitude: hotel.latitude || -13.518600,
+        longitude: hotel.longitude || -71.977200,
+        map_zoom: hotel.map_zoom || 16,
       },
     };
   }
