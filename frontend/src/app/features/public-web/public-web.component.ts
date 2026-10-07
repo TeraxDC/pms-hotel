@@ -91,105 +91,109 @@ import { CustomSelectComponent, SelectOption } from '../../shared/components/cus
         </div>
       </nav>
 
-      <!-- HERO SECTION WITH INTEGRATED BOOKING ENGINE -->
-      <section id="inicio" class="relative bg-slate-950 text-white py-20 lg:py-28 overflow-hidden min-h-[560px] flex flex-col justify-center">
-        <!-- Dynamic Background Cover Photo from CMS -->
+      <!-- HERO SECTION WITH INTEGRATED BOOKING ENGINE (CMS DESIGN MATCHED & LEFT-ALIGNED) -->
+      <section id="inicio" class="relative bg-slate-950 text-white py-16 sm:py-24 lg:py-28 overflow-hidden min-h-[600px] flex items-center">
+        <!-- Dynamic Background Cover Photo from CMS with full opacity matching preview -->
         <div 
           *ngIf="heroCoverImage()"
-          class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 opacity-25 scale-105"
+          class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 scale-100"
           [style.backgroundImage]="'url(' + heroCoverImage() + ')'"
         ></div>
-        <!-- Background subtle glow & gradient -->
-        <div class="absolute inset-0 bg-radial from-slate-900/80 via-slate-950/95 to-slate-950 opacity-90"></div>
-        <div class="absolute -right-20 -top-20 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <!-- Dark Gradient Overlay for optimal contrast, matching CMS preview -->
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/85 to-slate-950/60 lg:to-slate-950/40"></div>
+        <!-- Bottom subtle fade for smooth transition -->
+        <div class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
           
-          <div class="max-w-3xl mb-12">
-            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-widest mb-5">
-              <app-icon name="sparkles" [size]="14"></app-icon>
+          <div class="max-w-2xl text-left">
+            <!-- Badge matching CMS preview -->
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-4">
+              <app-icon name="sparkles" [size]="13"></app-icon>
               Experiencia & Confort Garantizado
             </div>
             
-            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1]">
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.15]">
               {{ heroTitle() }}
             </h1>
             
-            <p class="mt-4 text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
+            <p class="mt-3.5 text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl">
               {{ heroSubtitle() }}
             </p>
-          </div>
 
-          <!-- BOOKING & QUOTE ENGINE BOX -->
-          <div class="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 text-slate-900 border border-slate-100 max-w-5xl">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
-              <div class="flex items-center gap-2">
-                <app-icon name="calendar" [size]="18" class="text-amber-600"></app-icon>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Cotizador y Consulta de Disponibilidad Inmediata
-                </h3>
+            <!-- BOOKING & QUOTE ENGINE BOX (ALIGNED TO THE LEFT) -->
+            <div class="mt-8 bg-white rounded-3xl shadow-2xl p-6 sm:p-7 text-slate-900 border border-slate-100 max-w-2xl">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-3.5 mb-5">
+                <div class="flex items-center gap-2">
+                  <app-icon name="calendar" [size]="18" class="text-amber-600"></app-icon>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Cotizador y Consulta de Disponibilidad Inmediata
+                  </h3>
+                </div>
+                <span class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                  Tarifa Directa Oficial
+                </span>
               </div>
-              <span class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                Tarifa Directa Oficial
-              </span>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Check-In -->
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Fecha de Entrada</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="searchDates.checkIn"
+                    (change)="recalculateQuote()"
+                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <!-- Check-Out -->
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Fecha de Salida</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="searchDates.checkOut"
+                    (change)="recalculateQuote()"
+                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <!-- Tipo de Habitación -->
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Categoría de Habitación</label>
+                  <app-custom-select
+                    [options]="roomTypeOptions"
+                    [(ngModel)]="searchDates.selectedTypeId"
+                    (ngModelChange)="recalculateQuote()"
+                    placeholder="Todas las categorías"
+                  ></app-custom-select>
+                </div>
+
+                <!-- Botón Consultar WhatsApp -->
+                <div class="flex items-end">
+                  <button
+                    type="button"
+                    (click)="consultBooking()"
+                    class="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 rounded-xl font-bold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer h-[42px]"
+                  >
+                    <app-icon name="search" [size]="16"></app-icon>
+                    <span>Cotizar por WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quote Live Banner -->
+              <div *ngIf="quotePreviewNights > 0" class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-600">
+                <div class="flex items-center gap-2">
+                  <app-icon name="clock" [size]="16" class="text-slate-400"></app-icon>
+                  <span>Estadía estimada: <strong>{{ quotePreviewNights }} noche(s)</strong></span>
+                  <span *ngIf="quotePreviewTotal > 0">• Total aprox.: <strong class="text-slate-900 text-sm">S/. {{ quotePreviewTotal }}</strong></span>
+                </div>
+                <span class="text-[11px] text-slate-400">Atención inmediata en menos de 5 min por WhatsApp</span>
+              </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <!-- Check-In -->
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1.5">Fecha de Entrada</label>
-                <input
-                  type="date"
-                  [(ngModel)]="searchDates.checkIn"
-                  (change)="recalculateQuote()"
-                  class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
-                />
-              </div>
-
-              <!-- Check-Out -->
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1.5">Fecha de Salida</label>
-                <input
-                  type="date"
-                  [(ngModel)]="searchDates.checkOut"
-                  (change)="recalculateQuote()"
-                  class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
-                />
-              </div>
-
-              <!-- Tipo de Habitación -->
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1.5">Categoría de Habitación</label>
-                <app-custom-select
-                  [options]="roomTypeOptions"
-                  [(ngModel)]="searchDates.selectedTypeId"
-                  (ngModelChange)="recalculateQuote()"
-                  placeholder="Todas las categorías"
-                ></app-custom-select>
-              </div>
-
-              <!-- Botón Consultar WhatsApp -->
-              <div class="flex items-end">
-                <button
-                  type="button"
-                  (click)="consultBooking()"
-                  class="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 rounded-xl font-bold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer h-[42px]"
-                >
-                  <app-icon name="search" [size]="16"></app-icon>
-                  <span>Cotizar por WhatsApp</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Quote Live Banner -->
-            <div *ngIf="quotePreviewNights > 0" class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-600">
-              <div class="flex items-center gap-2">
-                <app-icon name="clock" [size]="16" class="text-slate-400"></app-icon>
-                <span>Estadía estimada: <strong>{{ quotePreviewNights }} noche(s)</strong></span>
-                <span *ngIf="quotePreviewTotal > 0">• Total aproximado: <strong class="text-slate-900 text-sm">S/. {{ quotePreviewTotal }}</strong></span>
-              </div>
-              <span class="text-[11px] text-slate-400">Atención inmediata en menos de 5 minutos por WhatsApp</span>
-            </div>
           </div>
 
         </div>

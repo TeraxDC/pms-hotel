@@ -110,27 +110,42 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
             <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
               Vista Previa en Vivo (Simulador Web)
             </label>
-            <div class="relative h-72 sm:h-80 rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 shadow-xl flex items-center px-8">
+            <div class="relative min-h-[340px] sm:min-h-[380px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 shadow-xl flex items-center p-6 sm:p-8">
               <!-- Background Image -->
               <div
                 class="absolute inset-0 bg-cover bg-center transition-all duration-500 scale-100"
                 [style.backgroundImage]="'url(' + (coverForm.image_url || defaultCover) + ')'"
               ></div>
               <!-- Dark overlay for contrast -->
-              <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/60"></div>
+              <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/85 to-slate-950/60 lg:to-slate-950/40"></div>
               
-              <!-- Content Mockup -->
-              <div class="relative z-10 max-w-xl text-white space-y-2">
+              <!-- Content Mockup Aligned to Left -->
+              <div class="relative z-10 max-w-xl text-white space-y-3 text-left">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-bold uppercase tracking-widest">
                   <app-icon name="sparkles" [size]="12"></app-icon>
                   Vista de Portada Activa
                 </span>
-                <h3 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                <h3 class="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
                   {{ coverForm.title || 'Bienvenido a Tu Hospedaje de Ensueño' }}
                 </h3>
-                <p class="text-xs text-slate-300 leading-relaxed">
+                <p class="text-xs text-slate-300 leading-relaxed max-w-md">
                   {{ coverForm.subtitle || 'Comodidad, elegancia y atención de primer nivel en el corazón de la ciudad.' }}
                 </p>
+
+                <!-- Mini Mockup of Cotizador Box Aligned to Left -->
+                <div class="p-3 bg-white/95 rounded-2xl border border-white/20 text-slate-900 shadow-md max-w-md space-y-2">
+                  <div class="flex items-center justify-between text-[10px] font-bold text-slate-700">
+                    <span class="flex items-center gap-1">
+                      <app-icon name="calendar" [size]="12" class="text-amber-600"></app-icon>
+                      Cotizador en Línea
+                    </span>
+                    <span class="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded text-[9px]">Tarifa Directa</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-1.5 text-[9px] text-slate-600 font-medium">
+                    <div class="bg-slate-50 p-1.5 rounded-lg border border-slate-200">Entrada: Hoy</div>
+                    <div class="bg-slate-50 p-1.5 rounded-lg border border-slate-200">Salida: Mañana</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
