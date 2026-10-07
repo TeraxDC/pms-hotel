@@ -39,15 +39,20 @@ export class HotelService {
         map_zoom: 16,
       });
       settings = await this.hotelRepo.save(settings);
-    } else {
       if (settings.latitude === null || settings.latitude === undefined) {
         settings.latitude = -13.518600;
+      } else {
+        settings.latitude = Number(settings.latitude);
       }
       if (settings.longitude === null || settings.longitude === undefined) {
         settings.longitude = -71.977200;
+      } else {
+        settings.longitude = Number(settings.longitude);
       }
       if (!settings.map_zoom) {
         settings.map_zoom = 16;
+      } else {
+        settings.map_zoom = Number(settings.map_zoom);
       }
     }
     return settings;

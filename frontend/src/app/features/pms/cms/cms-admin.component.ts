@@ -968,9 +968,36 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                 <input
                   type="text"
                   [(ngModel)]="locationForm.address"
-                  placeholder="Ej: Av. El Sol 345, Cercado, Cusco"
+                  placeholder="Ej: Av. Principal 456, Centro Histórico"
                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
                 />
+              </div>
+
+              <!-- Ciudad / Región y País -->
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Ciudad / Región *
+                  </label>
+                  <input
+                    type="text"
+                    [(ngModel)]="locationForm.city"
+                    placeholder="Ej: Cusco, Castrovirreyna, Lima..."
+                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    País *
+                  </label>
+                  <input
+                    type="text"
+                    [(ngModel)]="locationForm.country"
+                    placeholder="Ej: Perú"
+                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
+                  />
+                </div>
               </div>
 
               <!-- Título de Sección -->
@@ -999,39 +1026,22 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                 ></textarea>
               </div>
 
-              <!-- Presets Rápidos -->
+              <!-- Botón Único de Google Maps -->
               <div class="pt-2">
-                <span class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Atajos Rápidos de Coordenadas:
-                </span>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    (click)="setPresetLocation(-13.518600, -71.977200, 16)"
-                    class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    <app-icon name="map-pin" [size]="12" class="text-amber-600"></app-icon>
-                    Centro Histórico Cusco
-                  </button>
-
-                  <button
-                    type="button"
-                    (click)="setPresetLocation(-13.516000, -71.978500, 17)"
-                    class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    <app-icon name="map-pin" [size]="12" class="text-amber-600"></app-icon>
-                    Plaza de Armas Cusco
-                  </button>
-
-                  <button
-                    type="button"
-                    (click)="testInGoogleMaps()"
-                    class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    <app-icon name="chevron-right" [size]="12" class="text-blue-600"></app-icon>
+                <button
+                  type="button"
+                  (click)="testInGoogleMaps()"
+                  class="w-full py-2.5 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 text-xs font-bold transition-all shadow-2xs flex items-center justify-between cursor-pointer"
+                >
+                  <span class="flex items-center gap-2">
+                    <app-icon name="map-pin" [size]="15" class="text-amber-600"></app-icon>
                     Abrir en Google Maps
-                  </button>
-                </div>
+                  </span>
+                  <app-icon name="chevron-right" [size]="14" class="text-slate-400"></app-icon>
+                </button>
+                <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                  Permite abrir Google Maps para ubicar su hotel, verificar las coordenadas satelitales o buscar la ubicación exacta.
+                </p>
               </div>
 
             </div>
@@ -1077,6 +1087,9 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                     {{ locationForm.latitude }}, {{ locationForm.longitude }}
                   </span>
                 </div>
+                <p class="text-amber-300 text-[11px] font-bold uppercase tracking-wider" *ngIf="locationForm.city || locationForm.country">
+                  {{ locationForm.city || 'Ciudad / Región' }}, {{ locationForm.country || 'País' }}
+                </p>
                 <p class="text-slate-400 text-[11px]">
                   {{ locationForm.address || 'Sin dirección ingresada' }}
                 </p>
@@ -1491,6 +1504,8 @@ export class CmsAdminComponent implements OnInit {
     longitude: -71.977200,
     map_zoom: 16,
     address: '',
+    city: 'Cusco',
+    country: 'Perú',
     title: 'Encuéntranos en el Corazón de la Ciudad',
     subtitle: 'Ubicación céntrica y privilegiada, a pocos minutos de la Plaza de Armas y con fácil acceso a los principales atractivos.'
   };
@@ -1594,6 +1609,12 @@ export class CmsAdminComponent implements OnInit {
           if (settings.address) {
             this.locationForm.address = settings.address;
           }
+          if (settings.city) {
+            this.locationForm.city = settings.city;
+          }
+          if (settings.country) {
+            this.locationForm.country = settings.country;
+          }
 
           this.brandingForm.logo_url = settings.logo_url || '';
           this.brandingForm.logo_footer_url = settings.logo_footer_url || '';
@@ -1672,22 +1693,14 @@ export class CmsAdminComponent implements OnInit {
     return 'Detalle Máximo de Cuadra';
   }
 
-  setPresetLocation(lat: number, lng: number, zoom: number) {
-    this.locationForm.latitude = lat;
-    this.locationForm.longitude = lng;
-    this.locationForm.map_zoom = zoom;
-    this.updatePreviewUrl();
-    this.toast.info('Coordenadas aplicadas a la vista previa');
-  }
-
   testInGoogleMaps() {
     const lat = Number(this.locationForm.latitude);
     const lng = Number(this.locationForm.longitude);
-    if (isNaN(lat) || isNaN(lng)) {
-      this.toast.error('Ingrese coordenadas válidas');
-      return;
+    if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+    } else {
+      window.open('https://www.google.com/maps', '_blank');
     }
-    window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
   }
 
   saveLocation() {
@@ -1707,14 +1720,20 @@ export class CmsAdminComponent implements OnInit {
 
     this.isSavingLocation = true;
 
-    // 1. Guardar coordenadas y dirección en hotel/settings
+    // 1. Guardar coordenadas, dirección, ciudad/región y país en hotel/settings
     const hotelPayload: any = {
       latitude: lat,
       longitude: lng,
       map_zoom: zoom
     };
-    if (this.locationForm.address?.trim()) {
+    if (this.locationForm.address !== undefined) {
       hotelPayload.address = this.locationForm.address.trim();
+    }
+    if (this.locationForm.city !== undefined) {
+      hotelPayload.city = this.locationForm.city.trim();
+    }
+    if (this.locationForm.country !== undefined) {
+      hotelPayload.country = this.locationForm.country.trim();
     }
 
     this.api.put('hotel/settings', hotelPayload).subscribe({

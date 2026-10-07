@@ -611,14 +611,13 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
                 *ngIf="safeMapUrl()"
                 [src]="safeMapUrl()!"
                 class="w-full flex-1 min-h-[420px] border-0"
-                loading="lazy"
                 allowfullscreen
                 referrerpolicy="no-referrer-when-downgrade"
                 title="Ubicación del Hotel en Google Maps"
               ></iframe>
 
               <div *ngIf="!safeMapUrl()" class="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
-                <app-icon name="map-pin" [size]="36" class="mb-2 text-slate-300"></app-icon>
+                <app-icon name="map-pin" [size]="36" class="mb-2 text-slate-300 animate-pulse"></app-icon>
                 <p class="text-xs font-semibold">Cargando mapa interactivo del hotel...</p>
               </div>
             </div>
@@ -791,20 +790,22 @@ export class PublicWebComponent implements OnInit {
 
   hotelLatitude = computed(() => {
     const lat = this.hotelInfo()?.latitude;
-    return lat !== undefined && lat !== null ? Number(lat) : -13.518600;
+    return lat !== undefined && lat !== null && !isNaN(Number(lat)) ? Number(lat) : -13.518600;
   });
 
   hotelLongitude = computed(() => {
     const lng = this.hotelInfo()?.longitude;
-    return lng !== undefined && lng !== null ? Number(lng) : -71.977200;
+    return lng !== undefined && lng !== null && !isNaN(Number(lng)) ? Number(lng) : -71.977200;
   });
 
   hotelMapZoom = computed(() => {
     const z = this.hotelInfo()?.map_zoom;
-    return z ? Number(z) : 16;
+    return z && !isNaN(Number(z)) ? Number(z) : 16;
   });
 
   safeMapUrl = computed<SafeResourceUrl | null>(() => {
+    const info = this.hotelInfo();
+    if (!info) return null; // Esperar a que la información del hotel esté cargada desde la API
     const lat = this.hotelLatitude();
     const lng = this.hotelLongitude();
     const zoom = this.hotelMapZoom();
