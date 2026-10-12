@@ -9,6 +9,7 @@ import {
 import { Reservation } from './reservation.entity';
 import { PaymentMethod } from '../../statuses/entities/payment-method.entity';
 import { User } from '../../users/entities/user.entity';
+import { CashShift } from '../../cash/entities/cash-shift.entity';
 
 @Entity('payments')
 export class Payment {
@@ -21,6 +22,13 @@ export class Payment {
   @ManyToOne(() => Reservation, (res) => res.payments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'reservation_id' })
   reservation: Reservation;
+
+  @Column({ name: 'shift_id', nullable: true })
+  shift_id: number;
+
+  @ManyToOne(() => CashShift, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'shift_id' })
+  shift: CashShift;
 
   @Column({ name: 'payment_method_id' })
   payment_method_id: number;

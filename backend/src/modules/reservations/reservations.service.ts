@@ -440,17 +440,18 @@ export class ReservationsService {
       throw new NotFoundException('Método de pago no válido');
     }
 
+    const currentShift = await this.cashService.getCurrentShift();
+
     // Si el pago es en EFECTIVO (CASH), vincular con el turno de caja abierto
     if (payMethod.code === 'CASH') {
-      const shift = await this.cashService.getCurrentShift();
-      if (!shift) {
+      if (!currentShift) {
         throw new BadRequestException(
           'No se puede recibir dinero en efectivo porque no hay un turno de caja abierto en recepción. Inicie turno en el módulo de Caja.',
         );
       }
       await this.cashService.addMovement({
-        shift_id: shift.id,
-        user_id: shift.user_id,
+        shift_id: currentShift.id,
+        user_id: currentShift.user_id,
         movement_type: 'INCOME',
         concept: `Cobro Reserva ${res.reservation_code} - ${res.main_guest?.first_name} ${res.main_guest?.last_name}`,
         amount: amount,
@@ -459,6 +460,7 @@ export class ReservationsService {
 
     const payment = this.paymentRepo.create({
       reservation_id: reservationId,
+      shift_id: currentShift?.id || null,
       amount,
       payment_method_id: data.payment_method_id,
       reference_code: data.reference_code || '',

@@ -108,38 +108,86 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
         <div *ngIf="currentShift()" class="space-y-6">
           
           <!-- SUMMARY METRICS CARDS -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             
-            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-2xs">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Monto Inicial</span>
-              <span class="text-2xl font-black text-slate-900 block mt-1">
-                S/. {{ currentShift()!.initial_cash }}
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-2xs">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Fondo Inicial</span>
+              <span class="text-xl font-black text-slate-900 block mt-1">
+                S/. {{ currentShift()!.initial_cash | number:'1.2-2' }}
               </span>
-              <span class="text-[10px] text-slate-400 font-medium block mt-1">Apertura de turno</span>
+              <span class="text-[10px] text-slate-400 font-medium block mt-0.5">Efectivo apertura</span>
             </div>
 
-            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-2xs border-l-4 border-l-emerald-500">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Ingresos</span>
-              <span class="text-2xl font-black text-emerald-600 block mt-1">
-                +S/. {{ currentShift()!.total_incomes }}
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-2xs border-l-4 border-l-emerald-500">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Ingresos Efectivo</span>
+              <span class="text-xl font-black text-emerald-600 block mt-1">
+                +S/. {{ currentShift()!.total_incomes | number:'1.2-2' }}
               </span>
-              <span class="text-[10px] text-slate-400 font-medium block mt-1">Hospedaje & extras</span>
+              <span class="text-[10px] text-slate-400 font-medium block mt-0.5">Gaveta física</span>
             </div>
 
-            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-2xs border-l-4 border-l-red-500">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Egresos</span>
-              <span class="text-2xl font-black text-red-600 block mt-1">
-                -S/. {{ currentShift()!.total_expenses }}
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-2xs border-l-4 border-l-red-500">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Egresos Efectivo</span>
+              <span class="text-xl font-black text-red-600 block mt-1">
+                -S/. {{ currentShift()!.total_expenses | number:'1.2-2' }}
               </span>
-              <span class="text-[10px] text-slate-400 font-medium block mt-1">Compras & gastos menores</span>
+              <span class="text-[10px] text-slate-400 font-medium block mt-0.5">Compras & caja chica</span>
             </div>
 
-            <div class="bg-slate-900 p-5 rounded-2xl text-white shadow-md">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Efectivo en Caja</span>
-              <span class="text-2xl font-black text-amber-400 block mt-1">
-                S/. {{ currentShift()!.expected_cash }}
+            <div class="bg-slate-900 p-4 rounded-2xl text-white shadow-md border-l-4 border-l-amber-500">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-300 block">Efectivo en Gaveta</span>
+              <span class="text-xl font-black text-amber-400 block mt-1">
+                S/. {{ currentShift()!.expected_cash | number:'1.2-2' }}
               </span>
-              <span class="text-[10px] text-slate-400 font-medium block mt-1">Saldo teórico actual</span>
+              <span class="text-[10px] text-slate-400 font-medium block mt-0.5">Teórico a cuadrar</span>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-2xs border-l-4 border-l-blue-500">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Otros Medios (Digital)</span>
+              <span class="text-xl font-black text-blue-600 block mt-1">
+                +S/. {{ (currentShift()!.non_cash_incomes || 0) | number:'1.2-2' }}
+              </span>
+              <span class="text-[10px] text-slate-400 font-medium block mt-0.5">Tarjetas, Yape, Bancos</span>
+            </div>
+
+            <div class="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200 shadow-2xs">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">Total Recaudado</span>
+              <span class="text-xl font-black text-emerald-700 block mt-1">
+                S/. {{ (currentShift()!.total_turn_sales || currentShift()!.total_incomes) | number:'1.2-2' }}
+              </span>
+              <span class="text-[10px] text-emerald-700 font-medium block mt-0.5">Efectivo + Medios elect.</span>
+            </div>
+          </div>
+
+          <!-- DESGLOSE DE COBROS POR MÉTODO DE PAGO -->
+          <div *ngIf="currentShift()!.payments_by_method && currentShift()!.payments_by_method.length > 0" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-2xs">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                <app-icon name="credit-card" [size]="16" class="text-amber-600"></app-icon>
+                <span>Desglose de Cobros de Habitaciones por Método de Pago</span>
+              </h4>
+              <span class="text-[11px] text-slate-400 font-medium">Turno Activo</span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div
+                *ngFor="let pm of currentShift()!.payments_by_method"
+                class="p-3 rounded-xl border flex items-center justify-between"
+                [ngClass]="pm.is_cash ? 'bg-emerald-50/50 border-emerald-200/80 text-emerald-950' : 'bg-blue-50/50 border-blue-200/80 text-blue-950'"
+              >
+                <div>
+                  <span class="text-xs font-bold block">{{ pm.name }}</span>
+                  <span class="text-[10px] text-slate-500">{{ pm.count }} transacci{{ pm.count === 1 ? 'ón' : 'ones' }}</span>
+                </div>
+                <div class="text-right">
+                  <span class="font-mono font-black text-sm block" [ngClass]="pm.is_cash ? 'text-emerald-700' : 'text-blue-700'">
+                    S/. {{ pm.total | number:'1.2-2' }}
+                  </span>
+                  <span class="text-[9px] font-bold px-1.5 py-0.2 rounded" [ngClass]="pm.is_cash ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'">
+                    {{ pm.is_cash ? 'Gaveta' : 'Electrónico' }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -180,15 +228,37 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
             </div>
           </div>
 
-          <!-- MOVEMENTS TABLE -->
+          <!-- TABS DE DETALLE: MOVIMIENTOS VS PAGOS DE HABITACIONES -->
           <div class="bg-white rounded-3xl border border-slate-100 shadow-2xs overflow-hidden">
-            <div class="p-5 border-b border-slate-100">
-              <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                Movimientos del Turno en Efectivo
-              </h3>
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="shiftDetailTab.set('cash_movements')"
+                  class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                  [ngClass]="shiftDetailTab() === 'cash_movements' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                >
+                  <app-icon name="layers" [size]="14"></app-icon>
+                  <span>Movimientos en Efectivo ({{ currentShift()!.movements?.length || 0 }})</span>
+                </button>
+                <button
+                  type="button"
+                  (click)="shiftDetailTab.set('all_payments')"
+                  class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                  [ngClass]="shiftDetailTab() === 'all_payments' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                >
+                  <app-icon name="credit-card" [size]="14"></app-icon>
+                  <span>Cobros de Habitaciones & Medios ({{ currentShift()!.reservation_payments?.length || 0 }})</span>
+                </button>
+              </div>
+
+              <span class="text-[11px] text-slate-400 font-medium">
+                {{ shiftDetailTab() === 'cash_movements' ? 'Dinero físico registrado en gaveta' : 'Historial de pagos de reservas de este turno' }}
+              </span>
             </div>
 
-            <div class="overflow-x-auto">
+            <!-- TAB 1: MOVIMIENTOS EN EFECTIVO -->
+            <div *ngIf="shiftDetailTab() === 'cash_movements'" class="overflow-x-auto">
               <table class="w-full text-left text-xs text-slate-600">
                 <thead class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   <tr>
@@ -207,24 +277,74 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                         class="px-2.5 py-0.5 rounded-full text-[10px] font-bold"
                         [ngClass]="m.movement_type === 'INCOME' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'"
                       >
-                        {{ m.movement_type === 'INCOME' ? 'Ingreso' : 'Egreso' }}
+                        {{ m.movement_type === 'INCOME' ? 'Ingreso Efectivo' : 'Egreso Efectivo' }}
                       </span>
                     </td>
                     <td class="px-6 py-3.5 font-medium text-slate-800">{{ m.concept }}</td>
                     <td class="px-6 py-3.5 text-slate-500">{{ m.user?.full_name || 'Cajero' }}</td>
                     <td class="px-6 py-3.5 text-right font-bold" [ngClass]="m.movement_type === 'INCOME' ? 'text-emerald-600' : 'text-red-600'">
-                      {{ m.movement_type === 'INCOME' ? '+' : '-' }}S/. {{ m.amount }}
+                      {{ m.movement_type === 'INCOME' ? '+' : '-' }}S/. {{ m.amount | number:'1.2-2' }}
                     </td>
                   </tr>
 
                   <tr *ngIf="!currentShift()!.movements || currentShift()!.movements.length === 0">
                     <td colspan="5" class="px-6 py-8 text-center text-slate-400">
-                      No se han registrado movimientos extraordinarios en este turno
+                      No se han registrado movimientos extraordinarios de efectivo en este turno
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
+
+            <!-- TAB 2: COBROS DE HABITACIONES (TODOS LOS MEDIOS) -->
+            <div *ngIf="shiftDetailTab() === 'all_payments'" class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-600">
+                <thead class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <tr>
+                    <th class="px-6 py-3">Hora</th>
+                    <th class="px-6 py-3">Reserva / Huésped</th>
+                    <th class="px-6 py-3">Habitación(es)</th>
+                    <th class="px-6 py-3">Método de Pago</th>
+                    <th class="px-6 py-3">N° Voucher / Ref</th>
+                    <th class="px-6 py-3 text-right">Monto</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr *ngFor="let p of currentShift()!.reservation_payments" class="hover:bg-slate-50/80">
+                    <td class="px-6 py-3.5 font-medium text-slate-500">{{ p.paid_at | date:'HH:mm:ss' }}</td>
+                    <td class="px-6 py-3.5">
+                      <span class="font-bold text-slate-900 block">{{ p.guest_name }}</span>
+                      <span class="text-[10px] text-slate-400 font-mono">{{ p.reservation_code }}</span>
+                    </td>
+                    <td class="px-6 py-3.5 text-slate-700 font-medium">
+                      {{ p.room_numbers ? 'Hab. ' + p.room_numbers : 'Sin hab.' }}
+                    </td>
+                    <td class="px-6 py-3.5">
+                      <span
+                        class="px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1"
+                        [ngClass]="p.is_cash ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200'"
+                      >
+                        <app-icon [name]="p.is_cash ? 'check-circle' : 'credit-card'" [size]="12"></app-icon>
+                        {{ p.payment_method_name }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-3.5 font-mono text-slate-500 text-[11px]">
+                      {{ p.reference_code || '-' }}
+                    </td>
+                    <td class="px-6 py-3.5 text-right font-bold" [ngClass]="p.is_cash ? 'text-emerald-600' : 'text-blue-600'">
+                      +S/. {{ p.amount | number:'1.2-2' }}
+                    </td>
+                  </tr>
+
+                  <tr *ngIf="!currentShift()!.reservation_payments || currentShift()!.reservation_payments.length === 0">
+                    <td colspan="6" class="px-6 py-8 text-center text-slate-400">
+                      No se han registrado cobros de reservas durante este turno
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
           </div>
 
         </div>
@@ -241,7 +361,9 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 <th class="px-6 py-4">Cajero</th>
                 <th class="px-6 py-4">Apertura</th>
                 <th class="px-6 py-4">Cierre</th>
-                <th class="px-6 py-4">Esperado</th>
+                <th class="px-6 py-4">Otros Medios (Digital)</th>
+                <th class="px-6 py-4">Ventas Totales</th>
+                <th class="px-6 py-4">Gaveta Esperada</th>
                 <th class="px-6 py-4">Contado (Físico)</th>
                 <th class="px-6 py-4 text-right">Diferencia</th>
               </tr>
@@ -252,18 +374,24 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                 <td class="px-6 py-4 font-semibold text-slate-800">{{ s.user?.full_name }}</td>
                 <td class="px-6 py-4 text-slate-500">{{ s.opened_at | date:'short' }}</td>
                 <td class="px-6 py-4 text-slate-500">{{ s.closed_at ? (s.closed_at | date:'short') : 'Abierto' }}</td>
-                <td class="px-6 py-4 font-bold text-slate-900">S/. {{ s.expected_cash }}</td>
-                <td class="px-6 py-4 font-bold text-slate-900">{{ s.actual_cash !== null ? 'S/. ' + s.actual_cash : '-' }}</td>
+                <td class="px-6 py-4 font-medium text-blue-700">
+                  +S/. {{ (s.non_cash_incomes || 0) | number:'1.2-2' }}
+                </td>
+                <td class="px-6 py-4 font-black text-slate-900">
+                  S/. {{ (s.total_turn_sales || s.total_incomes) | number:'1.2-2' }}
+                </td>
+                <td class="px-6 py-4 font-bold text-slate-900">S/. {{ s.expected_cash | number:'1.2-2' }}</td>
+                <td class="px-6 py-4 font-bold text-slate-900">{{ s.actual_cash !== null ? ('S/. ' + (s.actual_cash | number:'1.2-2')) : '-' }}</td>
                 <td class="px-6 py-4 text-right">
                   <span
-                    class="font-bold px-2 py-1 rounded-md text-xs"
+                    class="font-bold px-2 py-1 rounded-md text-xs font-mono"
                     [ngClass]="{
                       'bg-emerald-50 text-emerald-700': s.difference == 0,
                       'bg-red-50 text-red-700': s.difference < 0,
                       'bg-blue-50 text-blue-700': s.difference > 0
                     }"
                   >
-                    {{ s.difference > 0 ? '+' : '' }}S/. {{ s.difference !== null ? s.difference : 0 }}
+                    {{ s.difference > 0 ? '+' : '' }}S/. {{ s.difference !== null ? (s.difference | number:'1.2-2') : '0.00' }}
                   </span>
                 </td>
               </tr>
@@ -374,30 +502,64 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
           </div>
 
           <div class="space-y-4">
-            <!-- Resumen Teórico del Sistema -->
-            <div class="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs space-y-2">
+            <!-- Resumen Teórico del Sistema (Efectivo Físico + Medios Electrónicos) -->
+            <div class="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs space-y-2.5">
               <div class="flex items-center justify-between font-bold text-slate-700">
                 <span class="flex items-center gap-1.5 text-slate-800">
                   <app-icon name="layers" [size]="14" class="text-amber-600"></app-icon>
-                  Saldo Teórico del Sistema (Esperado)
+                  Saldo Teórico Físico en Gaveta (A Cuadrar)
                 </span>
                 <span class="font-mono text-slate-950 font-black text-sm">
-                  S/. {{ currentShift()!.expected_cash }}
+                  S/. {{ currentShift()!.expected_cash | number:'1.2-2' }}
                 </span>
               </div>
 
+              <!-- Desglose Físico: Inicial + Ingresos Efectivo - Egresos Efectivo -->
               <div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/60 text-[11px]">
                 <div class="bg-white p-2 rounded-xl border border-slate-100">
                   <span class="text-slate-400 block text-[10px] uppercase font-bold">Fondo Inicial</span>
-                  <span class="font-bold text-slate-800">S/. {{ currentShift()!.initial_cash }}</span>
+                  <span class="font-bold text-slate-800">S/. {{ currentShift()!.initial_cash | number:'1.2-2' }}</span>
                 </div>
                 <div class="bg-white p-2 rounded-xl border border-slate-100">
-                  <span class="text-slate-400 block text-[10px] uppercase font-bold">Total Ingresos</span>
-                  <span class="font-bold text-emerald-600">+S/. {{ currentShift()!.total_incomes }}</span>
+                  <span class="text-slate-400 block text-[10px] uppercase font-bold">Ingresos Efectivo</span>
+                  <span class="font-bold text-emerald-600">+S/. {{ currentShift()!.total_incomes | number:'1.2-2' }}</span>
                 </div>
                 <div class="bg-white p-2 rounded-xl border border-slate-100">
-                  <span class="text-slate-400 block text-[10px] uppercase font-bold">Total Egresos</span>
-                  <span class="font-bold text-red-600">-S/. {{ currentShift()!.total_expenses }}</span>
+                  <span class="text-slate-400 block text-[10px] uppercase font-bold">Egresos Efectivo</span>
+                  <span class="font-bold text-red-600">-S/. {{ currentShift()!.total_expenses | number:'1.2-2' }}</span>
+                </div>
+              </div>
+
+              <!-- Desglose de Otros Medios de Pago Electrónicos / Digitales -->
+              <div class="pt-2 border-t border-slate-200/60">
+                <div class="flex items-center justify-between text-[11px] font-bold mb-1.5">
+                  <span class="flex items-center gap-1 text-slate-700">
+                    <app-icon name="credit-card" [size]="13" class="text-blue-600"></app-icon>
+                    Cobros por Otros Medios (Bancos / Digital)
+                  </span>
+                  <span class="font-mono text-blue-700 font-bold">
+                    +S/. {{ (currentShift()!.non_cash_incomes || 0) | number:'1.2-2' }}
+                  </span>
+                </div>
+
+                <div *ngIf="currentShift()!.payments_by_method && currentShift()!.payments_by_method.length > 0" class="flex flex-wrap gap-1.5 pt-0.5">
+                  <div
+                    *ngFor="let pm of currentShift()!.payments_by_method"
+                    class="px-2 py-1 bg-white rounded-lg border border-slate-200 text-[10px] flex items-center gap-1.5 font-medium shadow-2xs"
+                  >
+                    <span class="font-bold text-slate-700">{{ pm.name }}:</span>
+                    <span class="font-mono font-bold" [ngClass]="pm.is_cash ? 'text-emerald-700' : 'text-blue-700'">
+                      S/. {{ pm.total | number:'1.2-2' }}
+                    </span>
+                    <span class="text-slate-400 text-[9px]">({{ pm.count }})</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 mt-1.5 border-t border-slate-200/60 text-[11px]">
+                  <span class="font-bold text-slate-800">Recaudación Total del Turno:</span>
+                  <span class="font-mono font-black text-slate-900">
+                    S/. {{ (currentShift()!.total_turn_sales || currentShift()!.total_incomes) | number:'1.2-2' }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -557,6 +719,7 @@ export class CashComponent implements OnInit {
   activeView = signal<'current' | 'history'>('current');
   currentShift = signal<any | null>(null);
   historyList = signal<any[]>([]);
+  shiftDetailTab = signal<'cash_movements' | 'all_payments'>('cash_movements');
 
   showMovementModal = signal<boolean>(false);
   showCloseModal = signal<boolean>(false);
@@ -670,6 +833,12 @@ export class CashComponent implements OnInit {
     const actual = Number(this.closeShiftForm.actual_cash);
     const diff = Number((actual - expected).toFixed(2));
     const absDiff = Math.abs(diff).toFixed(2);
+    const nonCash = Number(shift.non_cash_incomes || 0);
+    const totalSales = Number(shift.total_turn_sales || shift.total_incomes || 0);
+
+    const electronicSummary = nonCash > 0
+      ? `• Cobros por otros medios (Tarjeta/Yape/Transferencia): S/. ${nonCash.toFixed(2)}\n• Recaudación global del turno: S/. ${totalSales.toFixed(2)}\n\n`
+      : '';
 
     let confirmTitle = 'Confirmar Cierre de Turno';
     let confirmType: 'info' | 'warning' | 'danger' = 'info';
@@ -682,9 +851,10 @@ export class CashComponent implements OnInit {
       confirmBtnText = 'Sí, Cerrar con Faltante';
       confirmMessage =
         `Se ha detectado un FALTANTE en el arqueo físico de caja:\n\n` +
-        `• Saldo Teórico Esperado: S/. ${expected.toFixed(2)}\n` +
+        `• Saldo Teórico Esperado (Gaveta): S/. ${expected.toFixed(2)}\n` +
         `• Efectivo Físico Contado: S/. ${actual.toFixed(2)}\n` +
         `• Diferencia en Contra: -S/. ${absDiff}\n\n` +
+        electronicSummary +
         `En la gaveta física falta dinero en comparación con las operaciones registradas en el sistema.\n\n` +
         `¿Desea confirmar el cierre del turno activo con este faltante?`;
     } else if (diff > 0) {
@@ -693,9 +863,10 @@ export class CashComponent implements OnInit {
       confirmBtnText = 'Sí, Cerrar con Sobrante';
       confirmMessage =
         `Se ha detectado un SOBRANTE en el arqueo físico de caja:\n\n` +
-        `• Saldo Teórico Esperado: S/. ${expected.toFixed(2)}\n` +
+        `• Saldo Teórico Esperado (Gaveta): S/. ${expected.toFixed(2)}\n` +
         `• Efectivo Físico Contado: S/. ${actual.toFixed(2)}\n` +
         `• Diferencia a Favor: +S/. ${absDiff}\n\n` +
+        electronicSummary +
         `En la gaveta física hay más dinero del registrado en el sistema.\n\n` +
         `¿Desea confirmar el cierre del turno activo con este sobrante?`;
     } else {
@@ -703,10 +874,11 @@ export class CashComponent implements OnInit {
       confirmType = 'info';
       confirmBtnText = 'Sí, Cerrar Turno';
       confirmMessage =
-        `El arqueo de caja coincide exactamente con el sistema:\n\n` +
-        `• Saldo Esperado: S/. ${expected.toFixed(2)}\n` +
+        `El arqueo físico de caja coincide exactamente con el sistema:\n\n` +
+        `• Saldo Esperado en Gaveta: S/. ${expected.toFixed(2)}\n` +
         `• Efectivo Contado: S/. ${actual.toFixed(2)}\n` +
         `• Diferencia: S/. 0.00\n\n` +
+        electronicSummary +
         `¿Desea confirmar el cierre del turno activo?`;
     }
 

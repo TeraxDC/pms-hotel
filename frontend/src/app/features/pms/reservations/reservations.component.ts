@@ -8,11 +8,20 @@ import { DialogService } from '../../../shared/components/dialog/dialog.service'
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
 import { CustomSelectComponent, SelectOption } from '../../../shared/components/custom-select/custom-select.component';
+import { ReceiptCanvasService, GeneratedReceipt, ReceiptData } from '../../../core/services/receipt-canvas.service';
+import { ReceiptModalComponent } from '../../../shared/components/receipt-modal/receipt-modal.component';
 
 @Component({
   selector: 'app-pms-reservations',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, StatusBadgeComponent, CustomSelectComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    IconComponent,
+    StatusBadgeComponent,
+    CustomSelectComponent,
+    ReceiptModalComponent
+  ],
   template: `
     <div class="space-y-6">
       
@@ -236,6 +245,17 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                   >
                     <app-icon name="shopping-bag" [size]="14"></app-icon>
                     Folio
+                  </button>
+
+                  <!-- Botón Comprobante WhatsApp -->
+                  <button
+                    type="button"
+                    (click)="openReceiptModal(res)"
+                    class="px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50/60 text-amber-900 hover:bg-amber-100 font-semibold text-xs transition-colors cursor-pointer inline-flex items-center gap-1"
+                    title="Emitir comprobante en imagen para WhatsApp"
+                  >
+                    <app-icon name="image" [size]="14" class="text-amber-700"></app-icon>
+                    <span>Comprobante</span>
                   </button>
 
                   <!-- Botón Cancelar si no está finalizada ni cancelada -->
@@ -1132,11 +1152,12 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
           <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
             <button
               type="button"
-              (click)="printReceipt()"
-              class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors flex items-center gap-2 cursor-pointer"
+              (click)="openReceiptModal()"
+              [disabled]="isGeneratingReceipt()"
+              class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 text-slate-950 text-xs font-black shadow-xs hover:shadow transition-all flex items-center gap-2 cursor-pointer"
             >
-              <app-icon name="credit-card" [size]="16"></app-icon>
-              Imprimir Comprobante
+              <app-icon name="image" [size]="16" class="text-slate-950"></app-icon>
+              <span>{{ isGeneratingReceipt() ? 'Generando Imagen...' : 'Comprobante / WhatsApp' }}</span>
             </button>
 
             <button
@@ -1417,6 +1438,14 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
         </div>
       </div>
 
+      <!-- ======================================================== -->
+      <!-- MODAL COMPROBANTE EN FORMATO IMAGEN PARA WHATSAPP       -->
+      <!-- ======================================================== -->
+      <app-receipt-modal
+        [receipt]="generatedReceipt()"
+        (close)="generatedReceipt.set(null)"
+      ></app-receipt-modal>
+
     </div>
   `
 })
@@ -1426,6 +1455,11 @@ export class ReservationsComponent implements OnInit {
   private dialog = inject(DialogService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private receiptCanvas = inject(ReceiptCanvasService);
+
+  generatedReceipt = signal<GeneratedReceipt | null>(null);
+  hotelSettings = signal<any | null>(null);
+  isGeneratingReceipt = signal<boolean>(false);
 
   reservations = signal<any[]>([]);
   rooms = signal<any[]>([]);
@@ -1537,6 +1571,7 @@ export class ReservationsComponent implements OnInit {
   ngOnInit() {
     this.loadPaymentMethods();
     this.loadRooms();
+    this.loadHotelSettings();
     this.loadReservations(() => {
       this.checkUrlParams();
     });
@@ -2034,8 +2069,91 @@ export class ReservationsComponent implements OnInit {
     });
   }
 
+  loadHotelSettings() {
+    this.api.get<any>('hotel/settings').subscribe({
+      next: (res) => this.hotelSettings.set(res),
+      error: () => console.warn('No se pudo cargar la configuración del hotel para el comprobante')
+    });
+  }
+
   printReceipt() {
-    window.print();
+    this.openReceiptModal();
+  }
+
+  async openReceiptModal(reservation?: any) {
+    const target = reservation || this.currentFolio();
+    if (!target) {
+      this.toast.warning('No hay una reserva seleccionada para emitir comprobante');
+      return;
+    }
+
+    this.isGeneratingReceipt.set(true);
+    try {
+      const settings = this.hotelSettings();
+      const receiptPayload: ReceiptData = {
+        hotel: {
+          name: settings?.hotel_name || 'HOTEL SAN JUAN BAUTISTA',
+          trade_name: settings?.trade_name,
+          tax_id: settings?.tax_id || '',
+          address: settings?.address || 'Cusco',
+          city: settings?.city || 'Cusco',
+          country: settings?.country || 'Perú',
+          phone: settings?.phone || '',
+          whatsapp: settings?.whatsapp || '',
+          email: settings?.email || '',
+          logo_url: settings?.logo_url || '',
+          currency_symbol: settings?.currency_symbol || 'S/.'
+        },
+        reservation: {
+          id: target.id,
+          reservation_code: target.reservation_code,
+          created_at: target.created_at,
+          check_in_date: target.check_in_date,
+          check_out_date: target.check_out_date,
+          total_accommodation: Number(target.total_accommodation || 0),
+          total_extras: Number(target.total_extras || 0),
+          total_discount: Number(target.total_discount || 0),
+          total_amount: Number(target.total_amount || 0),
+          paid_amount: Number(target.paid_amount || 0),
+          notes: target.notes,
+          guest: {
+            first_name: target.main_guest?.first_name || '',
+            last_name: target.main_guest?.last_name || '',
+            document_type: target.main_guest?.document_type?.name || 'DNI',
+            document_number: target.main_guest?.document_number || '',
+            phone: target.main_guest?.phone || '',
+            email: target.main_guest?.email || '',
+            nationality: target.main_guest?.nationality || ''
+          },
+          rooms: (target.rooms || []).map((r: any) => ({
+            room_number: r.room?.room_number || '',
+            room_type_name: r.room?.room_type?.name || '',
+            price_per_night: Number(r.price_per_night || 0)
+          })),
+          extra_charges: (target.extra_charges || []).map((c: any) => ({
+            concept: c.concept,
+            category_name: c.category?.name,
+            quantity: Number(c.quantity || 1),
+            unit_price: Number(c.unit_price || 0),
+            total_price: Number(c.total_price || 0)
+          })),
+          payments: (target.payments || []).map((p: any) => ({
+            paid_at: p.paid_at,
+            method_name: p.payment_method?.name || 'Pago',
+            reference_code: p.reference_code,
+            amount: Number(p.amount || 0)
+          }))
+        }
+      };
+
+      const generated = await this.receiptCanvas.generateReceiptImage(receiptPayload);
+      this.generatedReceipt.set(generated);
+    } catch (err) {
+      console.error('Error generando comprobante:', err);
+      this.toast.error('No se pudo generar la imagen del comprobante');
+    } finally {
+      this.isGeneratingReceipt.set(false);
+    }
   }
 
   openCancelModal(res: any) {
