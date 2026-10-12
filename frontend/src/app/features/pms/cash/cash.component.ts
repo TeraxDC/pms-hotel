@@ -352,30 +352,64 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
         </div>
       </div>
 
-      <!-- MODAL CIERRE DE TURNO (ARQUEO CIEGO) -->
+      <!-- MODAL CIERRE DE TURNO (ARQUEO & CUADRE DE CAJA) -->
       <div
         *ngIf="showCloseModal()"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
       >
-        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-6 text-slate-800 animate-in zoom-in-95 duration-150">
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 text-slate-800 animate-in zoom-in-95 duration-150">
           <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-            <h3 class="text-base font-bold text-slate-900">Arqueo Ciego & Cierre de Turno</h3>
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center font-bold">
+                <app-icon name="dollar-sign" [size]="18"></app-icon>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-slate-900 leading-tight">Arqueo de Efectivo & Cierre de Turno</h3>
+                <p class="text-xs text-slate-400">Verifique el dinero físico en gaveta frente al saldo teórico</p>
+              </div>
+            </div>
             <button (click)="showCloseModal.set(false)" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer">
               <app-icon name="x" [size]="18"></app-icon>
             </button>
           </div>
 
           <div class="space-y-4">
-            <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
-              <strong>Arqueo Ciego:</strong> Ingrese el total exacto de billetes y monedas contados en la gaveta. El sistema contrastará el dinero con el registro de operaciones.
+            <!-- Resumen Teórico del Sistema -->
+            <div class="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs space-y-2">
+              <div class="flex items-center justify-between font-bold text-slate-700">
+                <span class="flex items-center gap-1.5 text-slate-800">
+                  <app-icon name="layers" [size]="14" class="text-amber-600"></app-icon>
+                  Saldo Teórico del Sistema (Esperado)
+                </span>
+                <span class="font-mono text-slate-950 font-black text-sm">
+                  S/. {{ currentShift()!.expected_cash }}
+                </span>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/60 text-[11px]">
+                <div class="bg-white p-2 rounded-xl border border-slate-100">
+                  <span class="text-slate-400 block text-[10px] uppercase font-bold">Fondo Inicial</span>
+                  <span class="font-bold text-slate-800">S/. {{ currentShift()!.initial_cash }}</span>
+                </div>
+                <div class="bg-white p-2 rounded-xl border border-slate-100">
+                  <span class="text-slate-400 block text-[10px] uppercase font-bold">Total Ingresos</span>
+                  <span class="font-bold text-emerald-600">+S/. {{ currentShift()!.total_incomes }}</span>
+                </div>
+                <div class="bg-white p-2 rounded-xl border border-slate-100">
+                  <span class="text-slate-400 block text-[10px] uppercase font-bold">Total Egresos</span>
+                  <span class="font-bold text-red-600">-S/. {{ currentShift()!.total_expenses }}</span>
+                </div>
+              </div>
             </div>
 
+            <!-- Entrada de Efectivo Físico Contado -->
             <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Efectivo Físico Contado *
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <span>Efectivo Físico Contado en Gaveta *</span>
+                <span class="text-[10px] text-slate-400 font-normal">Billetes y monedas reales</span>
               </label>
               <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold text-xs">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold text-sm">
                   S/.
                 </div>
                 <input
@@ -383,20 +417,106 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
                   step="0.10"
                   [(ngModel)]="closeShiftForm.actual_cash"
                   placeholder="0.00"
-                  class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-black text-slate-900 focus:outline-hidden focus:border-amber-500"
+                  class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-lg font-black text-slate-900 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
                 />
               </div>
             </div>
 
+            <!-- PANEL INDICADOR DE LA DIFERENCIA (DÓNDE ESTÁ EL DESCUADRE) -->
+            <div *ngIf="closingDifference !== null" class="animate-in fade-in duration-150">
+              
+              <!-- CASO A: FALTANTE EN EFECTIVO -->
+              <div
+                *ngIf="closingDifference < 0"
+                class="p-4 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-950 space-y-2 shadow-2xs"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2 font-black text-red-700">
+                    <app-icon name="alert-triangle" [size]="18" class="text-red-600"></app-icon>
+                    <span>FALTANTE EN EFECTIVO FÍSICO</span>
+                  </div>
+                  <span class="font-mono font-black text-base text-red-600 bg-red-100/90 px-2.5 py-0.5 rounded-lg border border-red-200">
+                    -S/. {{ abs(closingDifference) | number:'1.2-2' }}
+                  </span>
+                </div>
+
+                <div class="text-[11px] text-red-900 space-y-1.5 leading-relaxed">
+                  <p>
+                    <strong>¿Dónde está la diferencia?</strong> En la gaveta física faltan <strong>S/. {{ abs(closingDifference) | number:'1.2-2' }}</strong> respecto a los registros del sistema.
+                  </p>
+                  <div class="grid grid-cols-2 gap-2 p-2.5 bg-white/90 rounded-xl border border-red-100 font-mono text-[11px] text-slate-700">
+                    <div>• Saldo Esperado: <strong class="text-slate-900">S/. {{ currentShift()!.expected_cash }}</strong></div>
+                    <div>• Dinero Contado: <strong class="text-red-700">S/. {{ closeShiftForm.actual_cash }}</strong></div>
+                  </div>
+                  <p class="text-[10px] text-red-800 italic pt-0.5">
+                    Posibles causas: Gasto menor no registrado como egreso, vuelto excedente entregado por error o error en el conteo de billetes/monedas.
+                  </p>
+                </div>
+              </div>
+
+              <!-- CASO B: SOBRANTE EN EFECTIVO -->
+              <div
+                *ngIf="closingDifference > 0"
+                class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 space-y-2 shadow-2xs"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2 font-black text-amber-800">
+                    <app-icon name="info" [size]="18" class="text-amber-600"></app-icon>
+                    <span>SOBRANTE EN EFECTIVO FÍSICO</span>
+                  </div>
+                  <span class="font-mono font-black text-base text-amber-700 bg-amber-100/90 px-2.5 py-0.5 rounded-lg border border-amber-200">
+                    +S/. {{ closingDifference | number:'1.2-2' }}
+                  </span>
+                </div>
+
+                <div class="text-[11px] text-amber-900 space-y-1.5 leading-relaxed">
+                  <p>
+                    <strong>¿Dónde está la diferencia?</strong> En la gaveta física sobran <strong>S/. {{ closingDifference | number:'1.2-2' }}</strong> por encima del saldo teórico registrado en el sistema.
+                  </p>
+                  <div class="grid grid-cols-2 gap-2 p-2.5 bg-white/90 rounded-xl border border-amber-100 font-mono text-[11px] text-slate-700">
+                    <div>• Saldo Esperado: <strong class="text-slate-900">S/. {{ currentShift()!.expected_cash }}</strong></div>
+                    <div>• Dinero Contado: <strong class="text-amber-800">S/. {{ closeShiftForm.actual_cash }}</strong></div>
+                  </div>
+                  <p class="text-[10px] text-amber-800 italic pt-0.5">
+                    Posibles causas: Cobro en efectivo no registrado en el sistema, propina dejada en gaveta o fondo inicial mayor al registrado.
+                  </p>
+                </div>
+              </div>
+
+              <!-- CASO C: CUADRE EXACTO -->
+              <div
+                *ngIf="closingDifference === 0"
+                class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-1 shadow-2xs"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2 font-black text-emerald-700">
+                    <app-icon name="check-circle" [size]="18" class="text-emerald-600"></app-icon>
+                    <span>CUADRE EXACTO DE TURNO</span>
+                  </div>
+                  <span class="font-mono font-black text-base text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                    S/. 0.00
+                  </span>
+                </div>
+                <p class="text-[11px] text-emerald-800">
+                  El dinero físico contado coincide al 100% con el saldo teórico de <strong>S/. {{ currentShift()!.expected_cash }}</strong>. La caja está perfectamente cuadrada.
+                </p>
+              </div>
+
+            </div>
+
+            <!-- Observaciones del Cierre -->
             <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Observaciones del Cierre
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <span>Observaciones del Cierre</span>
+                <span *ngIf="closingDifference !== null && closingDifference !== 0" class="text-[10px] text-amber-700 font-bold">
+                  Recomendado para justificar descuadre
+                </span>
               </label>
               <textarea
                 [(ngModel)]="closeShiftForm.notes"
                 rows="2"
-                placeholder="Comentarios adicionales o justificación de novedades..."
-                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-hidden focus:border-amber-500"
+                placeholder="Comentarios adicionales, motivo del descuadre o detalle del arqueo..."
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-hidden focus:border-amber-500 focus:bg-white transition-all"
               ></textarea>
             </div>
           </div>
@@ -405,16 +525,21 @@ import { CustomSelectComponent, SelectOption } from '../../../shared/components/
             <button
               type="button"
               (click)="showCloseModal.set(false)"
-              class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
+              class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold cursor-pointer transition-colors"
             >
               Cancelar
             </button>
             <button
               type="button"
               (click)="executeCloseShift()"
-              class="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-md shadow-red-600/20 cursor-pointer"
+              [disabled]="closeShiftForm.actual_cash === null"
+              class="px-5 py-2.5 rounded-xl text-white text-xs font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              [ngClass]="closingDifference !== null && closingDifference !== 0
+                ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/20'
+                : 'bg-red-600 hover:bg-red-500 shadow-red-600/20'"
             >
-              Confirmar Cierre de Turno
+              <app-icon name="check-circle" [size]="16"></app-icon>
+              <span>{{ closingDifference !== null && closingDifference !== 0 ? 'Revisar y Cerrar con Diferencia' : 'Confirmar Cierre de Turno' }}</span>
             </button>
           </div>
         </div>
@@ -512,38 +637,108 @@ export class CashComponent implements OnInit {
     });
   }
 
+  get closingDifference(): number | null {
+    if (
+      this.closeShiftForm.actual_cash === null ||
+      this.closeShiftForm.actual_cash === undefined ||
+      (this.closeShiftForm.actual_cash as any) === ''
+    ) {
+      return null;
+    }
+    const expected = Number(this.currentShift()?.expected_cash || 0);
+    const actual = Number(this.closeShiftForm.actual_cash);
+    return Number((actual - expected).toFixed(2));
+  }
+
+  abs(val: number | null): number {
+    return Math.abs(val || 0);
+  }
+
   async executeCloseShift() {
     const shift = this.currentShift();
-    if (!shift || this.closeShiftForm.actual_cash === null) {
-      this.toast.warning('Ingrese el monto físico contado');
+    if (
+      !shift ||
+      this.closeShiftForm.actual_cash === null ||
+      this.closeShiftForm.actual_cash === undefined ||
+      (this.closeShiftForm.actual_cash as any) === ''
+    ) {
+      this.toast.warning('Ingrese el monto físico contado en caja');
+      return;
+    }
+
+    const expected = Number(shift.expected_cash || 0);
+    const actual = Number(this.closeShiftForm.actual_cash);
+    const diff = Number((actual - expected).toFixed(2));
+    const absDiff = Math.abs(diff).toFixed(2);
+
+    let confirmTitle = 'Confirmar Cierre de Turno';
+    let confirmType: 'info' | 'warning' | 'danger' = 'info';
+    let confirmMessage = '';
+    let confirmBtnText = 'Sí, Cerrar Turno';
+
+    if (diff < 0) {
+      confirmTitle = `Descuadre: FALTANTE de S/. ${absDiff}`;
+      confirmType = 'danger';
+      confirmBtnText = 'Sí, Cerrar con Faltante';
+      confirmMessage =
+        `Se ha detectado un FALTANTE en el arqueo físico de caja:\n\n` +
+        `• Saldo Teórico Esperado: S/. ${expected.toFixed(2)}\n` +
+        `• Efectivo Físico Contado: S/. ${actual.toFixed(2)}\n` +
+        `• Diferencia en Contra: -S/. ${absDiff}\n\n` +
+        `En la gaveta física falta dinero en comparación con las operaciones registradas en el sistema.\n\n` +
+        `¿Desea confirmar el cierre del turno activo con este faltante?`;
+    } else if (diff > 0) {
+      confirmTitle = `Descuadre: SOBRANTE de S/. ${absDiff}`;
+      confirmType = 'warning';
+      confirmBtnText = 'Sí, Cerrar con Sobrante';
+      confirmMessage =
+        `Se ha detectado un SOBRANTE en el arqueo físico de caja:\n\n` +
+        `• Saldo Teórico Esperado: S/. ${expected.toFixed(2)}\n` +
+        `• Efectivo Físico Contado: S/. ${actual.toFixed(2)}\n` +
+        `• Diferencia a Favor: +S/. ${absDiff}\n\n` +
+        `En la gaveta física hay más dinero del registrado en el sistema.\n\n` +
+        `¿Desea confirmar el cierre del turno activo con este sobrante?`;
+    } else {
+      confirmTitle = 'Cierre de Turno Cuadrado';
+      confirmType = 'info';
+      confirmBtnText = 'Sí, Cerrar Turno';
+      confirmMessage =
+        `El arqueo de caja coincide exactamente con el sistema:\n\n` +
+        `• Saldo Esperado: S/. ${expected.toFixed(2)}\n` +
+        `• Efectivo Contado: S/. ${actual.toFixed(2)}\n` +
+        `• Diferencia: S/. 0.00\n\n` +
+        `¿Desea confirmar el cierre del turno activo?`;
+    }
+
+    const confirmed = await this.dialog.confirm({
+      title: confirmTitle,
+      message: confirmMessage,
+      type: confirmType,
+      confirmText: confirmBtnText,
+      cancelText: 'Cancelar y Recontar'
+    });
+
+    if (!confirmed) {
       return;
     }
 
     this.api.post('cash/close', {
       shift_id: shift.id,
-      actual_cash: this.closeShiftForm.actual_cash,
+      actual_cash: actual,
       notes: this.closeShiftForm.notes
     }).subscribe({
       next: async (closed: any) => {
         this.showCloseModal.set(false);
         this.closeShiftForm = { actual_cash: null, notes: '' };
 
-        const diff = Number(closed.difference || 0);
-        let title = 'Cuadre Exacto de Turno';
-        let type: 'success' | 'warning' | 'danger' = 'success';
-        let detail = `El dinero físico contado (S/. ${closed.actual_cash}) coincide exactamente con el saldo esperado (S/. ${closed.expected_cash}).`;
-
         if (diff < 0) {
-          title = 'Faltante en Caja';
-          type = 'danger';
-          detail = `Se detectó un FALTANTE de S/. ${Math.abs(diff)} en el arqueo físico (Contado: S/. ${closed.actual_cash} | Esperado: S/. ${closed.expected_cash}).`;
+          this.toast.warning(`Turno cerrado con faltante registrado de S/. ${absDiff}`);
         } else if (diff > 0) {
-          title = 'Sobrante en Caja';
-          type = 'warning';
-          detail = `Se detectó un SOBRANTE de S/. ${diff} en el arqueo físico (Contado: S/. ${closed.actual_cash} | Esperado: S/. ${closed.expected_cash}).`;
+          this.toast.info(`Turno cerrado con sobrante registrado de S/. ${absDiff}`);
+        } else {
+          this.toast.success('Turno de caja cerrado exitosamente con cuadre exacto');
         }
 
-        await this.dialog.alert(title, detail, type);
         this.loadCurrentShift();
       },
       error: (err) => this.toast.error(err?.error?.message || 'Error al cerrar caja')

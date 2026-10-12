@@ -39,7 +39,7 @@ import { IconComponent } from '../icon/icon.component';
         </div>
 
         <!-- Message Body -->
-        <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+        <p class="text-sm text-slate-600 mb-6 leading-relaxed whitespace-pre-line">
           {{ state.options.message }}
         </p>
 
