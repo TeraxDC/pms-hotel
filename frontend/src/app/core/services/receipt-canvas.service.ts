@@ -17,6 +17,9 @@ export interface ReceiptData {
   reservation: {
     id: number;
     reservation_code: string;
+    receipt_type?: string;
+    receipt_number?: string;
+    discount_code?: string;
     created_at?: string;
     check_in_date: string;
     check_out_date: string;
@@ -219,16 +222,18 @@ export class ReceiptCanvasService {
     ctx.font = '500 11.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     ctx.fillText(contactLine, titleStartX, 93);
 
-    // Bloque derecho: ESTADO DE CUENTA y N° RESERVA
+    // Bloque derecho: COMPROBANTE / FOLIO y N°
     ctx.textAlign = 'right';
     ctx.fillStyle = '#f59e0b';
     ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('ESTADO DE CUENTA / FOLIO', canvasWidth - paddingX, 48);
+    const docTypeLabel = res.receipt_type ? `${res.receipt_type} DE VENTA` : 'ESTADO DE CUENTA / FOLIO';
+    ctx.fillText(docTypeLabel, canvasWidth - paddingX, 48);
 
-    // Badge con código de reserva
+    // Número de comprobante o código de reserva
     ctx.fillStyle = '#ffffff';
     ctx.font = '900 22px "SF Mono", Consolas, Menlo, monospace';
-    ctx.fillText(res.reservation_code, canvasWidth - paddingX, 76);
+    const mainCode = res.receipt_number ? res.receipt_number : res.reservation_code;
+    ctx.fillText(mainCode, canvasWidth - paddingX, 76);
 
     const nowStr = new Date().toLocaleString('es-PE', {
       day: '2-digit',
@@ -239,7 +244,8 @@ export class ReceiptCanvasService {
     });
     ctx.fillStyle = '#94a3b8';
     ctx.font = '500 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText(`Emisión: ${nowStr}`, canvasWidth - paddingX, 96);
+    const subCodeInfo = res.receipt_number ? `Folio: ${res.reservation_code} • Emisión: ${nowStr}` : `Emisión: ${nowStr}`;
+    ctx.fillText(subCodeInfo, canvasWidth - paddingX, 96);
 
     // Indicador de Estado en el Header
     const statusText = isFullyPaid ? '✓ PAGADO TOTAL' : `PENDIENTE: ${currency} ${pendingBalance.toFixed(2)}`;
@@ -413,7 +419,8 @@ export class ReceiptCanvasService {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#059669';
       ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText('Descuento / Oferta Especial Aplicada', paddingX + 14, y);
+      const discLabel = res.discount_code ? `Descuento / Cupón Aplicado (${res.discount_code})` : 'Descuento / Oferta Especial Aplicada';
+      ctx.fillText(discLabel, paddingX + 14, y);
 
       ctx.textAlign = 'right';
       ctx.fillText(`-${currency} ${Number(res.total_discount).toFixed(2)}`, paddingX + cardW - 14, y);
@@ -614,9 +621,13 @@ export class ReceiptCanvasService {
     const roomsSummary = (res.rooms || []).map((r) => r.room_number).join(', ') || 'Asignada';
     const statusEmoji = isFullyPaid ? '✅ CUENTA LIQUIDADA (PAGADO)' : `⚠️ SALDO PENDIENTE: ${currency} ${pendingBalance.toFixed(2)}`;
 
+    const receiptLine = res.receipt_number
+      ? `📄 *${res.receipt_type || 'Comprobante'}:* ${res.receipt_number} (Folio: #${res.reservation_code})\n`
+      : `📄 *Comprobante de Cuenta:* #${res.reservation_code}\n`;
+
     const whatsappText =
       `🏨 *${hotel.name || 'HOTEL SAN JUAN BAUTISTA'}*\n` +
-      `📄 *Comprobante de Cuenta:* #${res.reservation_code}\n\n` +
+      receiptLine + '\n' +
       `👤 *Huésped:* ${guestName}\n` +
       `🚪 *Habitación:* Hab. ${roomsSummary}\n` +
       `📅 *Estadía:* ${res.check_in_date} al ${res.check_out_date}\n\n` +

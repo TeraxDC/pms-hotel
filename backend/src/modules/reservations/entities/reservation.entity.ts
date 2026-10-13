@@ -71,6 +71,15 @@ export class Reservation {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0.00 })
   paid_amount: number;
 
+  @Column({ length: 30, nullable: true })
+  receipt_type: string;
+
+  @Column({ length: 50, nullable: true })
+  receipt_number: string;
+
+  @Column({ length: 50, nullable: true })
+  discount_code: string;
+
   @Column({ type: 'text', nullable: true })
   notes: string;
 

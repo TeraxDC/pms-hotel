@@ -602,42 +602,173 @@ import { ReceiptModalComponent } from '../../../shared/components/receipt-modal/
                 <span class="text-amber-900 font-medium">
                   {{ walkInCalculatedNights }} noche(s) x S/. {{ walkInRoomPrice }}/noche
                 </span>
-                <span class="font-black text-amber-950 text-sm">
-                  Total Hospedaje: S/. {{ walkInCalculatedTotal }}
+                <span class="font-bold text-amber-950 text-xs">
+                  Subtotal: S/. {{ walkInCalculatedNights * walkInRoomPrice }}
                 </span>
               </div>
 
-              <!-- Descuento y Código Promocional Walk-In -->
-              <div class="grid grid-cols-2 gap-3 mt-3">
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Descuento / Oferta (S/.)</label>
-                  <input
-                    type="number"
-                    step="1"
-                    min="0"
-                    [(ngModel)]="walkInForm.discount_amount"
-                    (ngModelChange)="recalculateWalkInTotal()"
-                    name="wiDiscount"
-                    placeholder="0.00"
-                    class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                  />
+              <!-- Sección de Cupones de Descuento y Promociones -->
+              <div class="mt-3 p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <label class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                    <app-icon name="tag" [size]="14" class="text-amber-600"></app-icon>
+                    Cupón de Descuento / Promoción
+                  </label>
+                  <span *ngIf="walkInForm.discount_amount > 0" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    Descuento: -S/. {{ walkInForm.discount_amount }}
+                  </span>
                 </div>
+
+                <!-- Input y Botón de Aplicar Cupón -->
+                <div class="flex gap-2">
+                  <div class="relative flex-1">
+                    <input
+                      type="text"
+                      [(ngModel)]="walkInForm.coupon_code"
+                      name="wiCouponCode"
+                      (keyup.enter)="applyWalkInCoupon()"
+                      placeholder="Ej: PROMO-FINDE, PROMO-CORP"
+                      class="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-800 focus:outline-hidden focus:border-amber-500"
+                    />
+                    <div class="absolute left-2.5 top-2.5 text-slate-400">
+                      <app-icon name="tag" [size]="14"></app-icon>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    (click)="applyWalkInCoupon()"
+                    class="px-4 py-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-amber-400 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                  >
+                    <app-icon name="check" [size]="14"></app-icon>
+                    Aplicar
+                  </button>
+                </div>
+
+                <!-- Chips Rápidos de Cupones Vigentes -->
+                <div *ngIf="availableCoupons().length > 0" class="space-y-1">
+                  <span class="text-[10px] font-semibold text-slate-400 block">Cupones y promociones vigentes:</span>
+                  <div class="flex flex-wrap gap-1.5">
+                    <button
+                      *ngFor="let coupon of availableCoupons()"
+                      type="button"
+                      (click)="applyWalkInCoupon(coupon.code)"
+                      [title]="coupon.title + ' - ' + coupon.content"
+                      class="px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer flex items-center gap-1"
+                      [ngClass]="walkInForm.coupon_code === coupon.code
+                        ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-2xs font-extrabold'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-amber-400 hover:bg-amber-50/50'"
+                    >
+                      <app-icon [name]="coupon.icon || 'sparkles'" [size]="11" class="text-amber-600"></app-icon>
+                      {{ coupon.code }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Banner Informativo de Cupón Aplicado -->
+                <div *ngIf="walkInForm.applied_coupon || walkInForm.discount_amount > 0" class="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between text-xs animate-in fade-in duration-150">
+                  <div class="flex items-center gap-2">
+                    <app-icon name="check-circle" [size]="16" class="text-emerald-600 shrink-0"></app-icon>
+                    <div>
+                      <div class="font-bold text-emerald-950 flex items-center gap-1.5">
+                        <span>{{ walkInForm.coupon_code ? 'Cupón: ' + walkInForm.coupon_code : 'Descuento Aplicado' }}</span>
+                        <span class="text-emerald-700 font-extrabold">(-S/. {{ walkInForm.discount_amount }})</span>
+                      </div>
+                      <div class="text-[10px] text-emerald-700">
+                        {{ walkInForm.discount_reason || 'Beneficio promocional aplicado a la estadía' }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    (click)="removeWalkInCoupon()"
+                    class="p-1 text-emerald-600 hover:text-emerald-900 rounded-lg hover:bg-emerald-100 cursor-pointer"
+                    title="Quitar cupón"
+                  >
+                    <app-icon name="x" [size]="14"></app-icon>
+                  </button>
+                </div>
+
+                <!-- Ajuste Manual Opcional de Descuento -->
+                <div class="pt-1 flex items-center justify-between text-[11px] text-slate-500">
+                  <span class="text-[10px]">Ajuste manual de descuento:</span>
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-bold text-slate-600 text-xs">S/.</span>
+                    <input
+                      type="number"
+                      step="1"
+                      min="0"
+                      [max]="walkInCalculatedNights * walkInRoomPrice"
+                      [(ngModel)]="walkInForm.discount_amount"
+                      (ngModelChange)="recalculateWalkInTotal()"
+                      name="wiManualDiscount"
+                      class="w-20 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 text-right focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Total Final con Descuento -->
+              <div *ngIf="walkInCalculatedTotal >= 0" class="mt-2.5 p-3 bg-slate-900 rounded-xl text-white flex items-center justify-between text-xs shadow-xs">
                 <div>
-                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Cupón o Motivo de Oferta</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="walkInForm.discount_reason"
-                    name="wiReason"
-                    placeholder="Ej: PROMO-FINDE, PROMO-CORP"
-                    class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold uppercase text-slate-800"
-                  />
+                  <span class="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Total Estancia</span>
+                  <span class="text-slate-200 font-medium">
+                    {{ walkInCalculatedNights }} noche(s) • {{ walkInForm.discount_amount > 0 ? 'Con descuento aplicado' : 'Tarifa normal' }}
+                  </span>
+                </div>
+                <div class="text-right">
+                  <span class="font-black text-amber-400 text-base">
+                    S/. {{ walkInCalculatedTotal }}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <!-- Cobro Inmediato (Recomendado en Walk-in) -->
+            <!-- 3. Comprobante de Pago & Emisión Fiscal -->
+            <div class="border-b border-slate-100 pb-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">3. Comprobante de Pago</span>
+              
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Tipo de Comprobante *</label>
+                  <app-custom-select
+                    [options]="receiptTypeOptions"
+                    [(ngModel)]="walkInForm.receipt_type"
+                    (ngModelChange)="onReceiptTypeChange($event)"
+                    name="wiReceiptType"
+                  ></app-custom-select>
+                </div>
+
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-[11px] font-bold text-slate-600">Nº de Comprobante / Serie *</label>
+                    <button
+                      type="button"
+                      (click)="generateSuggestedReceiptNumber()"
+                      class="text-[10px] font-semibold text-amber-600 hover:text-amber-700 underline cursor-pointer"
+                    >
+                      Autogenerar
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    [(ngModel)]="walkInForm.receipt_number"
+                    name="wiReceiptNumber"
+                    required
+                    placeholder="Ej: B001-000421 o F001-00018"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 uppercase focus:outline-hidden focus:border-amber-500"
+                  />
+                  <span class="text-[10px] text-slate-400 mt-1 block">
+                    Se imprimirá en el comprobante digital y en el envío por WhatsApp.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Cobro en Recepción -->
             <div>
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">3. Cobro en Recepción</span>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">4. Cobro en Recepción</span>
               
               <label class="flex items-center gap-2 cursor-pointer mb-3">
                 <input type="checkbox" [(ngModel)]="walkInForm.registerPayment" name="wiPayCheck" class="rounded text-emerald-600" />
@@ -667,12 +798,12 @@ import { ReceiptModalComponent } from '../../../shared/components/receipt-modal/
                 </div>
 
                 <div>
-                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Nº Comprobante / Voucher</label>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Nº Operación POS / Voucher Bancario (Opcional)</label>
                   <input
                     type="text"
                     [(ngModel)]="walkInForm.payment.reference_code"
                     name="wiRef"
-                    placeholder="Ej. OP-449102 o Efectivo Recepción"
+                    placeholder="Ej. OP-449102, Yape Ref. 88310, o Efectivo"
                     class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
                   />
                 </div>
@@ -1467,6 +1598,13 @@ export class ReservationsComponent implements OnInit {
   roomOptions: SelectOption[] = [];
   availableCleanRoomOptions: SelectOption[] = [];
   payMethodOptions: SelectOption[] = [];
+  availableCoupons = signal<any[]>([]);
+  receiptTypeOptions: SelectOption[] = [
+    { value: 'BOLETA', label: 'Boleta de Venta' },
+    { value: 'FACTURA', label: 'Factura Electrónica' },
+    { value: 'TICKET', label: 'Ticket / Nota de Venta' },
+    { value: 'RECIBO', label: 'Recibo de Caja' }
+  ];
 
   filterTab = signal<string>('ALL'); // ALL, PENDING, CHECKED_IN, CHECKED_OUT
   searchQuery: string = '';
@@ -1514,8 +1652,12 @@ export class ReservationsComponent implements OnInit {
     check_out_date: new Date(Date.now() + 86400000).toISOString().substring(0, 10),
     selectedRoomId: null as number | null,
     total_guests: 1,
+    coupon_code: '',
     discount_amount: 0,
     discount_reason: '',
+    applied_coupon: null as any | null,
+    receipt_type: 'BOLETA',
+    receipt_number: '',
     registerPayment: true,
     payment: {
       amount: 0,
@@ -1572,6 +1714,7 @@ export class ReservationsComponent implements OnInit {
     this.loadPaymentMethods();
     this.loadRooms();
     this.loadHotelSettings();
+    this.loadAvailableCoupons();
     this.loadReservations(() => {
       this.checkUrlParams();
     });
@@ -1625,6 +1768,39 @@ export class ReservationsComponent implements OnInit {
         value: pm.id,
         label: pm.name
       }));
+    });
+  }
+
+  loadAvailableCoupons() {
+    this.api.get<any[]>('cms/public').subscribe({
+      next: (sections) => {
+        const offersSec = sections.find((s) => s.section_key === 'offers');
+        if (offersSec && offersSec.items && offersSec.items.length > 0) {
+          const active = offersSec.items
+            .filter((it: any) => it.is_active !== false)
+            .map((it: any) => ({
+              code: (it.link_url || '').toUpperCase().trim(),
+              title: it.title,
+              content: it.content,
+              icon: it.icon_name || 'tag'
+            }))
+            .filter((c: any) => !!c.code);
+          this.availableCoupons.set(active);
+        } else {
+          this.availableCoupons.set([
+            { code: 'PROMO-FINDE', title: 'Fin de Semana (20% OFF)', content: '20% de descuento en estadía', icon: 'sparkles' },
+            { code: 'PROMO-CORP', title: 'Tarifa Corporativa (S/. 20/noche)', content: 'S/. 20 de descuento por noche', icon: 'shield' },
+            { code: 'PROMO-ANTICIPADA', title: 'Reserva Anticipada (S/. 25 OFF)', content: 'S/. 25 de descuento directo', icon: 'calendar' }
+          ]);
+        }
+      },
+      error: () => {
+        this.availableCoupons.set([
+          { code: 'PROMO-FINDE', title: 'Fin de Semana (20% OFF)', content: '20% de descuento en estadía', icon: 'sparkles' },
+          { code: 'PROMO-CORP', title: 'Tarifa Corporativa (S/. 20/noche)', content: 'S/. 20 de descuento por noche', icon: 'shield' },
+          { code: 'PROMO-ANTICIPADA', title: 'Reserva Anticipada (S/. 25 OFF)', content: 'S/. 25 de descuento directo', icon: 'calendar' }
+        ]);
+      }
     });
   }
 
@@ -1778,6 +1954,91 @@ export class ReservationsComponent implements OnInit {
   // ==========================================
   // FLUJO 2: CHECK-IN INMEDIATO (WALK-IN)
   // ==========================================
+  generateSuggestedReceiptNumber(type?: string) {
+    const t = type || this.walkInForm.receipt_type || 'BOLETA';
+    let prefix = 'B001-';
+    if (t === 'FACTURA') prefix = 'F001-';
+    else if (t === 'TICKET') prefix = 'TK01-';
+    else if (t === 'RECIBO') prefix = 'RC01-';
+
+    const currentCount = this.reservations().length + 1;
+    const correlative = String(100 + currentCount).padStart(6, '0');
+    this.walkInForm.receipt_number = `${prefix}${correlative}`;
+  }
+
+  onReceiptTypeChange(newType: string) {
+    this.walkInForm.receipt_type = newType;
+    if (!this.walkInForm.receipt_number || /^(B001|F001|TK01|RC01)-\d+$/.test(this.walkInForm.receipt_number)) {
+      this.generateSuggestedReceiptNumber(newType);
+    }
+  }
+
+  applyWalkInCoupon(codeToApply?: string) {
+    const code = (codeToApply || this.walkInForm.coupon_code || '').trim().toUpperCase();
+    if (!code) {
+      this.toast.warning('Ingrese un código de cupón');
+      return;
+    }
+
+    this.walkInForm.coupon_code = code;
+    const available = this.availableCoupons();
+    const found = available.find((c) => c.code === code);
+
+    const nights = this.walkInCalculatedNights || 1;
+    const r = this.rooms().find((rm) => rm.id === this.walkInForm.selectedRoomId);
+    const pricePerNight = Number(r?.room_type?.base_price || this.walkInRoomPrice || 0);
+    const subtotal = pricePerNight * nights;
+
+    let discount = 0;
+    let reason = '';
+
+    if (found) {
+      reason = found.title;
+      const pctMatch = (found.title + ' ' + (found.content || '')).match(/(\d+)\s*%/);
+      const perNightMatch = (found.title + ' ' + (found.content || '')).match(/S\/\.?\s*(\d+)\s*por\s*noche/i);
+      const flatMatch = (found.title + ' ' + (found.content || '')).match(/S\/\.?\s*(\d+)/i);
+
+      if (code === 'PROMO-FINDE' || (pctMatch && !perNightMatch)) {
+        const pct = pctMatch ? parseInt(pctMatch[1], 10) : 20;
+        discount = Math.round((subtotal * pct) / 100);
+      } else if (code === 'PROMO-CORP' || perNightMatch) {
+        const valPerNight = perNightMatch ? parseInt(perNightMatch[1], 10) : 20;
+        discount = valPerNight * nights;
+      } else if (code === 'PROMO-ANTICIPADA' || flatMatch) {
+        discount = flatMatch ? parseInt(flatMatch[1], 10) : 25;
+      } else {
+        discount = 20;
+      }
+      this.walkInForm.applied_coupon = found;
+    } else {
+      reason = `Cupón: ${code}`;
+      if (Number(this.walkInForm.discount_amount) > 0) {
+        discount = Number(this.walkInForm.discount_amount);
+      } else {
+        discount = 15;
+      }
+      this.walkInForm.applied_coupon = { code, title: `Cupón Especial ${code}`, content: 'Cupón personalizado' };
+    }
+
+    if (subtotal > 0) {
+      discount = Math.min(discount, subtotal);
+    }
+    this.walkInForm.discount_amount = discount;
+    this.walkInForm.discount_reason = reason;
+
+    this.recalculateWalkInTotal();
+    this.toast.success(`Cupón ${code} aplicado exitosamente (-S/. ${discount.toFixed(2)})`);
+  }
+
+  removeWalkInCoupon() {
+    this.walkInForm.coupon_code = '';
+    this.walkInForm.discount_amount = 0;
+    this.walkInForm.discount_reason = '';
+    this.walkInForm.applied_coupon = null;
+    this.recalculateWalkInTotal();
+    this.toast.info('Cupón promocional removido');
+  }
+
   openWalkInModal(preSelectedRoomId?: number | null) {
     this.loadRooms();
     const today = new Date().toISOString().substring(0, 10);
@@ -1795,8 +2056,12 @@ export class ReservationsComponent implements OnInit {
       check_out_date: tomorrow,
       selectedRoomId: preSelectedRoomId || (this.availableCleanRoomOptions[0]?.value as number) || null,
       total_guests: 1,
+      coupon_code: '',
       discount_amount: 0,
       discount_reason: '',
+      applied_coupon: null as any | null,
+      receipt_type: 'BOLETA',
+      receipt_number: '',
       registerPayment: true,
       payment: {
         amount: 0,
@@ -1805,6 +2070,7 @@ export class ReservationsComponent implements OnInit {
       }
     };
 
+    this.generateSuggestedReceiptNumber('BOLETA');
     this.recalculateWalkInTotal();
     this.showWalkInModal.set(true);
   }
@@ -1822,7 +2088,24 @@ export class ReservationsComponent implements OnInit {
     if (r) {
       this.walkInRoomPrice = Number(r.room_type?.base_price || 0);
       const subtotal = this.walkInRoomPrice * nights;
-      const discount = Number(this.walkInForm.discount_amount || 0);
+
+      // Recalcular dinámicamente si hay un cupón activo con fórmula porcentual o por noche
+      if (this.walkInForm.applied_coupon) {
+        const code = this.walkInForm.coupon_code;
+        const found = this.walkInForm.applied_coupon;
+        const pctMatch = (found.title + ' ' + (found.content || '')).match(/(\d+)\s*%/);
+        const perNightMatch = (found.title + ' ' + (found.content || '')).match(/S\/\.?\s*(\d+)\s*por\s*noche/i);
+
+        if (code === 'PROMO-FINDE' || (pctMatch && !perNightMatch)) {
+          const pct = pctMatch ? parseInt(pctMatch[1], 10) : 20;
+          this.walkInForm.discount_amount = Math.round((subtotal * pct) / 100);
+        } else if (code === 'PROMO-CORP' || perNightMatch) {
+          const valPerNight = perNightMatch ? parseInt(perNightMatch[1], 10) : 20;
+          this.walkInForm.discount_amount = valPerNight * nights;
+        }
+      }
+
+      const discount = Math.min(Number(this.walkInForm.discount_amount || 0), subtotal);
       this.walkInCalculatedTotal = Math.max(0, subtotal - discount);
       this.walkInForm.payment.amount = this.walkInCalculatedTotal;
     } else {
@@ -1837,6 +2120,9 @@ export class ReservationsComponent implements OnInit {
       return;
     }
 
+    const receiptNum = (this.walkInForm.receipt_number || '').trim();
+    const couponCode = (this.walkInForm.coupon_code || '').trim().toUpperCase();
+
     const payload: any = {
       is_walk_in: true,
       guest: this.walkInForm.guest,
@@ -1844,19 +2130,19 @@ export class ReservationsComponent implements OnInit {
       check_in_date: this.walkInForm.check_in_date,
       check_out_date: this.walkInForm.check_out_date,
       total_guests: this.walkInForm.total_guests || 1,
-      discount_amount: Number(this.walkInForm.discount_amount || 0)
+      discount_amount: Number(this.walkInForm.discount_amount || 0),
+      discount_code: couponCode || null,
+      receipt_type: this.walkInForm.receipt_type || 'BOLETA',
+      receipt_number: receiptNum || null,
+      notes: `Walk-In Mostrador. Comprobante: ${this.walkInForm.receipt_type} ${receiptNum || 'S/N'}${couponCode ? ' | Cupón: ' + couponCode : ''}`
     };
-
-    if (this.walkInForm.discount_reason) {
-      payload.notes = `Descuento: ${this.walkInForm.discount_reason}`;
-    }
 
     if (this.walkInForm.registerPayment && Number(this.walkInForm.payment.amount) > 0) {
       payload.payment = {
         amount: Number(this.walkInForm.payment.amount),
         payment_method_id: this.walkInForm.payment.payment_method_id,
-        reference_code: this.walkInForm.payment.reference_code,
-        notes: 'Cobro Check-In Inmediato Walk-In'
+        reference_code: this.walkInForm.payment.reference_code || receiptNum || '',
+        notes: `Cobro Check-In Walk-In (${this.walkInForm.receipt_type}: ${receiptNum || 'S/N'})`
       };
     }
 
@@ -2107,6 +2393,9 @@ export class ReservationsComponent implements OnInit {
         reservation: {
           id: target.id,
           reservation_code: target.reservation_code,
+          receipt_type: target.receipt_type,
+          receipt_number: target.receipt_number,
+          discount_code: target.discount_code,
           created_at: target.created_at,
           check_in_date: target.check_in_date,
           check_out_date: target.check_out_date,

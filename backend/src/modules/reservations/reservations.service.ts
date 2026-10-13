@@ -89,6 +89,9 @@ export class ReservationsService {
     notes?: string;
     is_walk_in?: boolean;
     discount_amount?: number;
+    discount_code?: string;
+    receipt_type?: string;
+    receipt_number?: string;
     payment?: {
       amount: number;
       payment_method_id: number;
@@ -183,6 +186,9 @@ export class ReservationsService {
       total_accommodation: totalAccommodation,
       total_extras: 0,
       total_discount: discount,
+      discount_code: data.discount_code || null,
+      receipt_type: data.receipt_type || null,
+      receipt_number: data.receipt_number || null,
       total_amount: Math.max(0, totalAccommodation - discount),
       paid_amount: 0,
       notes: data.notes,
@@ -203,11 +209,12 @@ export class ReservationsService {
 
     // Registrar pago inicial si fue ingresado
     if (data.payment && Number(data.payment.amount) > 0) {
+      const refCode = data.payment.reference_code || data.receipt_number || '';
       await this.addPayment(saved.id, {
         amount: Number(data.payment.amount),
         payment_method_id: data.payment.payment_method_id,
-        reference_code: data.payment.reference_code,
-        notes: data.payment.notes || (data.is_walk_in ? 'Pago inicial Check-In Walk-In' : 'Anticipo de reserva'),
+        reference_code: refCode,
+        notes: data.payment.notes || (data.is_walk_in ? `Pago inicial Check-In Walk-In${data.receipt_number ? ' (' + (data.receipt_type || 'Comprobante') + ' ' + data.receipt_number + ')' : ''}` : 'Anticipo de reserva'),
       });
     }
 
